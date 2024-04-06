@@ -40,12 +40,12 @@ int init_socket_fd(int *socket_fd, server_type type)
     }
 }
 
-void TCP_handler()
+void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 {
 
 }
 
-void UDP_handler()
+void UDP_handler(int socket_fd)
 {
 
 }
@@ -106,12 +106,12 @@ int main(int argc, char *argv[])
     // server does not
     switch (type_of_server)
     {
+    case TCP:
+        TCP_handler(socket_fd, &server_address);
+        break; 
     case UDP:
 
         break;
-    case TCP:
-
-        break; 
     default:
         break;
     }
