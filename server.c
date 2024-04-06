@@ -61,9 +61,28 @@ int main(int argc, char *argv[])
         syserr("cannot create a socket");
     }
 
+    // Now we create socket address to which we will bind the socket. We have 
+    // to do it since newly created socket has no address thus cannot be seen 
+    // other processes (clients)
+    struct sockaddr_in server_address;
 
+    // We created socket with IPv4 protocol so we need to choose the same one
+    // here for address
+    server_address.sin_family = AF_INET;
 
+    // Numbers need to be in network byte order so we convert them by htonl/s.
+    // Since we are server we want to listen on all available interfaces
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY); 
 
+    // We need to give port which we are using, for our address 
+    server_address.sin_port = htons(port);
+
+    // Now we need to bind created address to our socket.
+    if (bind(socket_fd, (struct sockaddr *) (&server_address),
+                             (socklen_t) sizeof server_address) < 0)
+    {
+        syserr("binding socket with address unsuccesful");
+    }
 
     return 0;
 }
