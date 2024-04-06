@@ -10,6 +10,7 @@
 #include "err.h"
 #include "common.h"
 
+#define QUEUE_LEN 5
 
 typedef enum server_type {TCP, UDP} server_type;
 
@@ -27,7 +28,7 @@ server_type check_type_of_server(const char* input)
         fatal("given protocol type is not tcp nor udp\n");
 }
 
-int init_socket_fd(int *socket_fd, server_type type)
+void init_socket_fd(int *socket_fd, server_type type)
 {
     if (type == TCP)
         *socket_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -42,7 +43,24 @@ int init_socket_fd(int *socket_fd, server_type type)
 
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 {
+    // Since its TCP server we switch its socket to listening
+    if (listen(socket_fd, QUEUE_LEN) < 0) 
+    {
+            syserr("TCP-listen-error\n");
+    }
+    
+    printf("address before getsockname %" PRId32 "\n", server_address->sin_addr.s_addr);
+    //  
+    socklen_t lenght = (socklen_t) sizeof (*server_address);
+    if (getsockname(socket_fd, (struct sockaddr *) server_address, &lenght) < 0)
+    {
+        syserr("getsockname");
+    }
+    
+    printf("address after getsockname %" PRId32 "\n", server_address->sin_addr.s_addr);
 
+    printf("parent is listening on port %" PRIu16 "\n", 
+        ntohs(server_address->sin_port));
 }
 
 void UDP_handler(int socket_fd)
