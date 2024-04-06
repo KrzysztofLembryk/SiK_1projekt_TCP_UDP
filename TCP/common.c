@@ -12,7 +12,7 @@
 #include "err.h"
 #include "common.h"
 
-uint16_t read_port(char const *string) {
+uint16_t port_from_str_to_ul(char const *string) {
     char *endptr;
     unsigned long port = strtoul(string, &endptr, 10);
     if ((port == ULONG_MAX && errno == ERANGE) || *endptr != 0 || port == 0 || port > UINT16_MAX) {

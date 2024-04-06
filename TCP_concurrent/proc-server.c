@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
         fatal("usage: %s <port>", argv[0]);
     }
 
-    uint16_t port = read_port(argv[1]);
+    uint16_t port = port_from_str_to_ul(argv[1]);
 
     // Create a socket.
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);

@@ -19,7 +19,7 @@
  * identifies us as server. So client need to know our IP and number of this 
  * port to establish connection with server.  
 */
-static uint16_t read_port(char const *string) 
+static uint16_t port_from_str_to_ul(char const *string) 
 {
     char *endptr;
     unsigned long port = strtoul(string, &endptr, 10);
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
         fatal("usage: %s <port>", argv[0]);
     }
 
-    uint16_t port = read_port(argv[1]);
+    uint16_t port = port_from_str_to_ul(argv[1]);
 
     // Create a socket. Buffer should not be allocated on the stack.
     int socket_fd = socket(AF_INET, SOCK_DGRAM, 0);

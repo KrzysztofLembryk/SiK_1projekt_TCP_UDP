@@ -18,7 +18,7 @@
  * We read port that we need to know to establish connection with server. Under
  * this port sought server on given IP waits.
  */
-static uint16_t read_port(char const *string)
+static uint16_t port_from_str_to_ul(char const *string)
 {
     char *endptr;
     unsigned long port = strtoul(string, &endptr, 10);
@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
     }
 
     char const *host = argv[1];
-    uint16_t port = read_port(argv[2]);
+    uint16_t port = port_from_str_to_ul(argv[2]);
 
     struct sockaddr_in server_address = get_server_address(host, port);
     char const *server_ip = inet_ntoa(server_address.sin_addr);

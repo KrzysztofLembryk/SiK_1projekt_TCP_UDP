@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
     }
 
     const char *host = argv[1];
-    uint16_t port = read_port(argv[2]);
+    uint16_t port = port_from_str_to_ul(argv[2]);
     struct sockaddr_in server_address = get_server_address(host, port);
 
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
