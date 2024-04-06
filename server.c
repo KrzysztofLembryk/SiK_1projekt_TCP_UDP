@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
     // --> SOCK_DGRAM - UDP
     // ## protocol - specifies protocol, default protocol = 0 is used
     int socket_fd;
+
     if (type_of_server == TCP)
         socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     else
@@ -82,6 +83,21 @@ int main(int argc, char *argv[])
                              (socklen_t) sizeof server_address) < 0)
     {
         syserr("binding socket with address unsuccesful");
+    }
+
+    // Depending on type of server we need to change how our server behaves.
+    // For instance TCP server opens socket in listening mode, whereas UDP 
+    // server does not
+    switch (type_of_server)
+    {
+    case UDP:
+
+        break;
+    case TCP:
+
+        break; 
+    default:
+        break;
     }
 
     return 0;
