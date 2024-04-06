@@ -11,8 +11,44 @@
 #include "common.h"
 
 
-enum server_type {TCP, UDP};
+typedef enum server_type {TCP, UDP} server_type;
 
+server_type check_type_of_server(const char* input)
+{
+    if (strcmp(input, "tcp") == 0)
+    {
+        return TCP;
+    }
+    else if (strcmp(input, "udp") == 0)
+    {
+        return UDP;
+    }
+    else
+        fatal("given protocol type is not tcp nor udp\n");
+}
+
+int init_socket_fd(int *socket_fd, server_type type)
+{
+    if (type == TCP)
+        *socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    else
+        *socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    if (*socket_fd < 0)
+    {
+        syserr("cannot create a socket");
+    }
+}
+
+void TCP_handler()
+{
+
+}
+
+void UDP_handler()
+{
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -24,18 +60,7 @@ int main(int argc, char *argv[])
         fatal("usage of %s: <protocol type> <port number>\n", argv[0]);
     }
 
-    enum server_type type_of_server;
-
-    if (strcmp(argv[1], "tcp") == 0)
-    {
-        type_of_server = TCP;
-    }
-    else if (strcmp(argv[1], "udp") == 0)
-    {
-        type_of_server = UDP;
-    }
-    else
-        fatal("given protocol type is not tcp nor udp\n");
+    server_type type_of_server = check_type_of_server(argv[1]);
 
     // We read port, and change it from str to uint16
     uint16_t port = port_from_str_to_ul(argv[2]);
@@ -51,16 +76,7 @@ int main(int argc, char *argv[])
     // --> SOCK_DGRAM - UDP
     // ## protocol - specifies protocol, default protocol = 0 is used
     int socket_fd;
-
-    if (type_of_server == TCP)
-        socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-    else
-        socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
-
-    if (socket_fd < 0)
-    {
-        syserr("cannot create a socket");
-    }
+    init_socket_fd(&socket_fd, type_of_server);
 
     // Now we create socket address to which we will bind the socket. We have 
     // to do it since newly created socket has no address thus cannot be seen 
