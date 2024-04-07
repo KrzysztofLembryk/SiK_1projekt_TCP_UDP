@@ -13,6 +13,7 @@
 #include "err.h"
 #include "common.h"
 #include "packet_structures.h"
+#include "protconst.h"
 
 #define QUEUE_LEN 5
 
@@ -45,6 +46,10 @@ void init_socket_fd(int *socket_fd, server_type type)
     }
 }
 
+void TCP_handle_connection_init()
+{
+    CONN conn;
+}
 
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 {
@@ -77,6 +82,12 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
         uint16_t client_port = ntohs(client_address.sin_port);
 
         printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
+
+        // Set timeouts for the client socket so that we could prevent one 
+        // client connecting and no sending anything thus blocking our server
+        struct timeval time_o = {.tv_sec = MAX_WAIT, .tv_usec = 0};
+        setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &time_o, sizeof time_o);
+        setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &time_o, sizeof time_o);
 
     }
 }
