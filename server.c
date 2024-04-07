@@ -18,6 +18,9 @@
 #include "helper_func.h"
 
 #define QUEUE_LEN 5
+#define TCP_PROTOCOL 1
+#define UDP_PROTOCOL 2
+#define UDPR_PROTOCOL 3
 
 struct sockaddr_in wait_for_client(int socket_fd, int *c_fd)
 {
@@ -40,23 +43,43 @@ struct sockaddr_in wait_for_client(int socket_fd, int *c_fd)
 
 int TCP_handle_connection_init(CONN *conn, int client_fd)
 {
-    ssize_t read_lenght;
-    ssize_t written_length;
+    ssize_t read_lenght = readn(client_fd, conn, sizeof (*conn));
 
-    read_lenght = readn(client_fd, conn, sizeof (*conn));
     if (read_lenght < 0) {
-        if (errno == EAGAIN) {
+        if (errno == EAGAIN) 
+        {
             printf("timeout\n"); 
+            return -1;
         } 
-        else {
+        else 
+        {
             error("readn");
         }
     }
-    else if (read_lenght == 0) {
-        printf("connection closed\n");
+    else if (read_lenght == 0) 
+    {
+        printf("connection closed read_len == 0\n");
+        return -1;
     }
-    else if ((size_t) read_lenght < sizeof (*conn)) {
+    else if ((size_t) read_lenght < sizeof (*conn)) 
+    {
         printf("connection closed without providing full data structure\n");
+        return -1;
+    }
+
+    if (conn->package_type_id != CONN_ID)
+    {
+        printf("connection closed - wrong package_type_id\n");
+        return -2;
+    }
+    else
+    {
+        if (conn->protocol_id != TCP_PROTOCOL)
+        {
+            printf("Wrong protocol\n");
+            return -2;
+        }
+        return 0;
     }
 }
 
@@ -68,9 +91,8 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
     
     printf("address before getsockname %" PRId32 "\n", server_address->sin_addr.s_addr);
 
-    //  
-    socklen_t lenght = (socklen_t) sizeof (*server_address);
-    if (getsockname(socket_fd, (struct sockaddr *) server_address, &lenght) < 0)
+    socklen_t length = (socklen_t) sizeof (*server_address);
+    if (getsockname(socket_fd, (struct sockaddr *) server_address, &length) < 0)
         syserr("getsockname");
 
 
@@ -100,6 +122,22 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
         setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &time_o, sizeof time_o);
         setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &time_o, sizeof time_o);
 
+        CONN conn;
+        conn.package_type_id = 0;
+        int init_ret_val = TCP_handle_connection_init(&conn, client_fd);
+
+        if (init_ret_val == -1)
+        {
+            printf("some error in nbr of read bytes closing connection \n");
+            close(client_fd);
+            continue;
+        }
+        else if(init_ret_val == -2)
+        {
+            printf("Wrong package_type_id, closing connection\n");
+            close(client_fd);
+            continue;
+        }
     }
 }
 
