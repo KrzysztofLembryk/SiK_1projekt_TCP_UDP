@@ -116,7 +116,17 @@ int TCP_handle_conn_init(CONN *conn, int client_fd)
 
 int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
 {
-
+    ssize_t written_length = writen(client_fd, conacc, sizeof (*conacc));
+    if ((size_t) written_length < sizeof (*conacc)) 
+    {
+        error("TCP-send_CONACC_to_client-writen-wrote less than wanted size\n");
+        return -1;
+    }
+    else 
+    {
+        printf("reply sent\n");
+        return 0;
+    }
 }
 
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
@@ -162,6 +172,12 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
         CONACC conacc;
         init_CONACC(&conacc, conn.session_id);
         int conacc_ret_val = TCP_send_CONACC_to_client(client_fd, &conacc);
+
+        if (conacc_ret_val != 0)
+        {
+            close(client_fd);
+            continue;
+        }
     }
 }
 
