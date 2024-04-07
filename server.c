@@ -9,6 +9,7 @@
 // includes htobe64 etc.:
 #include <endian.h>
 #include <stdbool.h>
+#include <errno.h>
 
 #include "err.h"
 #include "common.h"
@@ -18,10 +19,45 @@
 
 #define QUEUE_LEN 5
 
-
-int TCP_handle_connection_init(CONN *conn)
+struct sockaddr_in wait_for_client(int socket_fd, int *c_fd)
 {
+    // We wait for client that wants to connect with us on accept function
+    struct sockaddr_in client_address;
+    int client_fd = accept(socket_fd, (struct sockaddr *) &client_address,
+                            &((socklen_t){sizeof(client_address)}));
 
+    if (client_fd < 0) 
+        syserr("TCPserver-accept");
+    
+    char const *client_ip = inet_ntoa(client_address.sin_addr);
+    uint16_t client_port = ntohs(client_address.sin_port);
+
+    printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
+
+    *c_fd = client_fd;
+    return client_address;
+}
+
+int TCP_handle_connection_init(CONN *conn, int client_fd)
+{
+    ssize_t read_lenght;
+    ssize_t written_length;
+
+    read_lenght = readn(client_fd, conn, sizeof (*conn));
+    if (read_lenght < 0) {
+        if (errno == EAGAIN) {
+            printf("timeout\n"); 
+        } 
+        else {
+            error("readn");
+        }
+    }
+    else if (read_lenght == 0) {
+        printf("connection closed\n");
+    }
+    else if ((size_t) read_lenght < sizeof (*conn)) {
+        printf("connection closed without providing full data structure\n");
+    }
 }
 
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
@@ -43,18 +79,20 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
     
     while(true)
     {
-        // We wait for client that wants to connect with us on accept function
-        struct sockaddr_in client_address;
-        int client_fd = accept(socket_fd, (struct sockaddr *) &client_address,
-                               &((socklen_t){sizeof(client_address)}));
+        // // We wait for client that wants to connect with us on accept function
+        // struct sockaddr_in client_address;
+        // int client_fd = accept(socket_fd, (struct sockaddr *) &client_address,
+        //                        &((socklen_t){sizeof(client_address)}));
 
-        if (client_fd < 0) 
-            syserr("TCPserver-accept");
+        // if (client_fd < 0) 
+        //     syserr("TCPserver-accept");
         
-        char const *client_ip = inet_ntoa(client_address.sin_addr);
-        uint16_t client_port = ntohs(client_address.sin_port);
+        // char const *client_ip = inet_ntoa(client_address.sin_addr);
+        // uint16_t client_port = ntohs(client_address.sin_port);
 
-        printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
+        // printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
+        int client_fd = -1;
+        struct sockaddr_in client_address = wait_for_client(socket_fd, &client_fd);
 
         // Set timeouts for the client socket so that we could prevent one 
         // client connecting and no sending anything thus blocking our server
