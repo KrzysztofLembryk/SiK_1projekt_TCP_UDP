@@ -2,14 +2,6 @@
 #include <arpa/inet.h>
 #include <endian.h>
 
-#define CONN_ID 1
-#define CONACC_ID 2
-#define CONRJT_ID 3
-#define DATA_ID 4
-#define ACC_ID 5
-#define RJT_ID 6
-#define RCVD_ID 7
-
 void init_CONN(CONN *conn, uint64_t session_id, uint8_t protocol_id, 
                 uint64_t nbr_of_bytes)
 {

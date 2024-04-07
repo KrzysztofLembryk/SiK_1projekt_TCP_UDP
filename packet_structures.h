@@ -5,6 +5,13 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+#define CONN_ID 1
+#define CONACC_ID 2
+#define CONRJT_ID 3
+#define DATA_ID 4
+#define ACC_ID 5
+#define RJT_ID 6
+#define RCVD_ID 7
 // All sent numbers need to be in network byte order
 
 // -----DATA STRUCTURES-----

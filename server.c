@@ -45,6 +45,7 @@ void init_socket_fd(int *socket_fd, server_type type)
     }
 }
 
+
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 {
     // Since its TCP server we switch its socket to listening
@@ -68,9 +69,15 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
         struct sockaddr_in client_address;
         int client_fd = accept(socket_fd, (struct sockaddr *) &client_address,
                                &((socklen_t){sizeof(client_address)}));
+
         if (client_fd < 0) 
             syserr("TCPserver-accept");
         
+        char const *client_ip = inet_ntoa(client_address.sin_addr);
+        uint16_t client_port = ntohs(client_address.sin_port);
+
+        printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
+
     }
 }
 
