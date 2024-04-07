@@ -106,14 +106,17 @@ int TCP_handle_conn_init(CONN *conn, int client_fd)
     {
         printf("some error in nbr of read bytes closing connection \n");
         // NIE WIEM CZY TRZEBA TERAZ COS KLIENTOWI WYSLAC
-        close(client_fd);
     }
     else if(init_ret_val == -2)
     {
         printf("Wrong package_type_id, closing connection\n");
-        close(client_fd);
     }
     return init_ret_val;
+}
+
+int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
+{
+
 }
 
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
@@ -134,18 +137,6 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
     
     while(true)
     {
-        // // We wait for client that wants to connect with us on accept function
-        // struct sockaddr_in client_address;
-        // int client_fd = accept(socket_fd, (struct sockaddr *) &client_address,
-        //                        &((socklen_t){sizeof(client_address)}));
-
-        // if (client_fd < 0) 
-        //     syserr("TCPserver-accept");
-        
-        // char const *client_ip = inet_ntoa(client_address.sin_addr);
-        // uint16_t client_port = ntohs(client_address.sin_port);
-
-        // printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
         int client_fd = -1;
         struct sockaddr_in client_address = wait_for_client(socket_fd, 
                                                             &client_fd);
@@ -160,8 +151,17 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
         conn.package_type_id = 0;
         int init_ret_val = TCP_handle_conn_init(&conn, client_fd);
         
+        // We didnt receive correct CONN packet thus we end connection with
+        // client and move on 
         if (init_ret_val != 0)
+        {
+            close(client_fd);
             continue;
+        }  
+
+        CONACC conacc;
+        init_CONACC(&conacc, conn.session_id);
+        int conacc_ret_val = TCP_send_CONACC_to_client(client_fd, &conacc);
     }
 }
 
