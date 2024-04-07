@@ -1,4 +1,6 @@
 #include <stdio.h>
+// for close():
+#include <unistd.h>
 #include <inttypes.h>
 #include <sys/socket.h>
 // #include <string.h>
@@ -41,7 +43,20 @@ struct sockaddr_in wait_for_client(int socket_fd, int *c_fd)
     return client_address;
 }
 
-int TCP_handle_connection_init(CONN *conn, int client_fd)
+void set_timeout_for_client_socket(int client_fd)
+{
+    // Set timeouts for the client socket so that we could prevent one 
+    // client connecting and no sending anything thus blocking our server
+    struct timeval time_o = {.tv_sec = MAX_WAIT, .tv_usec = 0};
+    setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &time_o, sizeof time_o);
+    setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &time_o, sizeof time_o);
+}
+
+// Function handles initialization of connection with client. It waits for data
+// of type CONN, reads it, and checks whether read data has package_type equal
+// to CONN_ID if not, it returns -2. It also checks whether read data has 
+// correct protocol equal to TCP_PROTOCOL
+int TCP_conn_init_helper(CONN *conn, int client_fd)
 {
     ssize_t read_lenght = readn(client_fd, conn, sizeof (*conn));
 
@@ -83,6 +98,24 @@ int TCP_handle_connection_init(CONN *conn, int client_fd)
     }
 }
 
+int TCP_handle_conn_init(CONN *conn, int client_fd)
+{
+    int init_ret_val = TCP_conn_init_helper(conn, client_fd);
+
+    if (init_ret_val == -1)
+    {
+        printf("some error in nbr of read bytes closing connection \n");
+        // NIE WIEM CZY TRZEBA TERAZ COS KLIENTOWI WYSLAC
+        close(client_fd);
+    }
+    else if(init_ret_val == -2)
+    {
+        printf("Wrong package_type_id, closing connection\n");
+        close(client_fd);
+    }
+    return init_ret_val;
+}
+
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 {
     // Since its TCP server we switch its socket to listening
@@ -114,30 +147,21 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 
         // printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
         int client_fd = -1;
-        struct sockaddr_in client_address = wait_for_client(socket_fd, &client_fd);
+        struct sockaddr_in client_address = wait_for_client(socket_fd, 
+                                                            &client_fd);
 
-        // Set timeouts for the client socket so that we could prevent one 
-        // client connecting and no sending anything thus blocking our server
-        struct timeval time_o = {.tv_sec = MAX_WAIT, .tv_usec = 0};
-        setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &time_o, sizeof time_o);
-        setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &time_o, sizeof time_o);
+        // We need to set time for our client in order to prevent client from 
+        // connecting and not sending anything thus blocking our server
+        set_timeout_for_client_socket(client_fd);
 
+        // Now we want to receive CONN packet with package_type = CONN_ID and
+        // protocol_id = TCP_PROTOCOL to establish connection with client
         CONN conn;
         conn.package_type_id = 0;
-        int init_ret_val = TCP_handle_connection_init(&conn, client_fd);
-
-        if (init_ret_val == -1)
-        {
-            printf("some error in nbr of read bytes closing connection \n");
-            close(client_fd);
+        int init_ret_val = TCP_handle_conn_init(&conn, client_fd);
+        
+        if (init_ret_val != 0)
             continue;
-        }
-        else if(init_ret_val == -2)
-        {
-            printf("Wrong package_type_id, closing connection\n");
-            close(client_fd);
-            continue;
-        }
     }
 }
 
