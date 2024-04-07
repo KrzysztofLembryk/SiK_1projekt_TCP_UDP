@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <inttypes.h>
 #include <sys/socket.h>
-#include <string.h>
+// #include <string.h>
 // includes sockaddr:
 #include <netinet/in.h>
 // includes htonl etc.:
@@ -14,41 +14,14 @@
 #include "common.h"
 #include "packet_structures.h"
 #include "protconst.h"
+#include "helper_func.h"
 
 #define QUEUE_LEN 5
 
-typedef enum server_type {TCP, UDP} server_type;
 
-server_type check_type_of_server(const char* input)
+int TCP_handle_connection_init(CONN *conn)
 {
-    if (strcmp(input, "tcp") == 0)
-    {
-        return TCP;
-    }
-    else if (strcmp(input, "udp") == 0)
-    {
-        return UDP;
-    }
-    else
-        fatal("given protocol type is not tcp nor udp\n");
-}
 
-void init_socket_fd(int *socket_fd, server_type type)
-{
-    if (type == TCP)
-        *socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-    else
-        *socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
-
-    if (*socket_fd < 0)
-    {
-        syserr("cannot create a socket");
-    }
-}
-
-void TCP_handle_connection_init()
-{
-    CONN conn;
 }
 
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
