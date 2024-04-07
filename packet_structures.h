@@ -5,6 +5,14 @@
 #include <stddef.h>
 #include <sys/types.h>
 
+// All sent numbers need to be in network byte order
+
+// -----DATA STRUCTURES-----
+
+// protocol_id:
+// 1 - tcp
+// 2 - udp
+// 3 - udpr (with retransmission) 
 typedef struct __attribute__((__packed__))
 {
     uint8_t package_type_id;
@@ -19,5 +27,62 @@ typedef struct __attribute__((__packed__))
     uint64_t session_id;
 } CONACC;
 
+
+typedef struct __attribute__((__packed__))
+{
+    uint8_t package_type_id;
+    uint64_t session_id;
+} CONRJT;
+
+// package_id - we need this attribute to determine correct order of received 
+//              packages
+// nbr_of_bytes_to_be_sent - determines how many bytes will be stored in
+//                           char *seq_of_bytes
+typedef struct __attribute__((__packed__))
+{
+    uint8_t package_type_id;
+    uint64_t session_id;
+    uint64_t package_id;
+    uint32_t nbr_of_bytes_to_be_sent; 
+    char *seq_of_bytes;
+} DATA;
+
+typedef struct __attribute__((__packed__))
+{
+    uint8_t package_type_id;
+    uint64_t session_id;
+    uint64_t package_id;
+} ACC;
+
+typedef struct __attribute__((__packed__))
+{
+    uint8_t package_type_id;
+    uint64_t session_id;
+    uint64_t package_id;
+} RJT;
+
+typedef struct __attribute__((__packed__))
+{
+    uint8_t package_type_id;
+    uint64_t session_id;
+} RCVD;
+
+// -----INIT FUNCTIONS-----
+
+void init_CONN(CONN *conn, uint64_t session_id, uint8_t protocol_id, 
+                uint64_t nbr_of_bytes);
+
+void init_CONACC(CONACC *conacc, uint64_t session_id);
+
+void init_CONRJT(CONRJT *conrjt, uint64_t session_id);
+
+void init_DATA(DATA *data, uint64_t session_id, uint64_t package_id, 
+                uint32_t nbr_of_bytes, char *bytes_to_send);
+
+void init_ACC(ACC *acc, uint64_t session_id, uint64_t package_id);
+
+void init_RJT(RJT *rjt, uint64_t session_id, uint64_t package_id);
+
+void init_RCVD(RCVD *rcvd, uint64_t session_id);
 
 #endif
