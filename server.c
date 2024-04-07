@@ -6,9 +6,13 @@
 #include <netinet/in.h>
 // includes htonl etc.:
 #include <arpa/inet.h>
+// includes htobe64 etc.:
 #include <endian.h>
+#include <stdbool.h>
+
 #include "err.h"
 #include "common.h"
+#include "packet_structures.h"
 
 #define QUEUE_LEN 5
 
@@ -45,22 +49,29 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 {
     // Since its TCP server we switch its socket to listening
     if (listen(socket_fd, QUEUE_LEN) < 0) 
-    {
-            syserr("TCP-listen-error\n");
-    }
+        syserr("TCP-listen-error\n");
     
     printf("address before getsockname %" PRId32 "\n", server_address->sin_addr.s_addr);
+
     //  
     socklen_t lenght = (socklen_t) sizeof (*server_address);
     if (getsockname(socket_fd, (struct sockaddr *) server_address, &lenght) < 0)
-    {
         syserr("getsockname");
-    }
-    
-    printf("address after getsockname %" PRId32 "\n", server_address->sin_addr.s_addr);
 
-    printf("parent is listening on port %" PRIu16 "\n", 
+
+    printf("TCPserver-parent is listening on port %" PRIu16 "\n", 
         ntohs(server_address->sin_port));
+    
+    while(true)
+    {
+        // We wait for client that wants to connect with us on accept function
+        struct sockaddr_in client_address;
+        int client_fd = accept(socket_fd, (struct sockaddr *) &client_address,
+                               &((socklen_t){sizeof(client_address)}));
+        if (client_fd < 0) 
+            syserr("TCPserver-accept");
+        
+    }
 }
 
 void UDP_handler(int socket_fd)
