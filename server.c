@@ -155,8 +155,29 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
 {
     ssize_t read_length = readn(client_fd, data_metainfo, 
                                                     sizeof (*data_metainfo));
-    
 
+    if (readn_error_handler(read_length, sizeof (*data_metainfo)) != 0)
+        return -1;
+
+    ntoh_DATA_INFO(data_metainfo);
+
+    if(data_metainfo->package_type_id != DATA_ID)
+    {
+        error("TCP_get_DATA_metainfo-wrong package type id\n");
+        return -1;
+    }
+    if (data_metainfo->session_id != session_id)
+    {
+        error("TCP_get_DATA_metainfo-wrong session id\n");
+        return -1;
+    }
+    if (data_metainfo->package_id != prev_packet_id + 1)
+    {
+        error("TCP_get_DATA_metainfo-wrong not consecutive packet id\n");
+        return -1; 
+    }
+
+    return 0;
 }
 
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
