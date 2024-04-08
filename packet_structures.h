@@ -25,7 +25,7 @@ typedef struct __attribute__((__packed__))
     uint8_t package_type_id;
     uint64_t session_id;
     uint8_t protocol_id;
-    uint64_t len_of_bytes_seq;
+    uint64_t nbr_of_bytes_to_be_sent;
 } CONN;
 
 typedef struct __attribute__((__packed__))
@@ -50,7 +50,7 @@ typedef struct __attribute__((__packed__))
     uint8_t package_type_id;
     uint64_t session_id;
     uint64_t package_id;
-    uint32_t nbr_of_bytes_to_be_sent; 
+    uint32_t nbr_of_bytes_in_packet; 
     char *seq_of_bytes;
 } DATA;
 

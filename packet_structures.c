@@ -8,7 +8,7 @@ void init_CONN(CONN *conn, uint64_t session_id, uint8_t protocol_id,
     conn->package_type_id = CONN_ID;
     conn->session_id = htobe64(session_id);
     conn->protocol_id = protocol_id;
-    conn->len_of_bytes_seq = htobe64(nbr_of_bytes);
+    conn->nbr_of_bytes_to_be_sent = htobe64(nbr_of_bytes);
 }
 
 void init_CONACC(CONACC *conacc, uint64_t session_id)
@@ -29,7 +29,7 @@ void init_DATA(DATA *data, uint64_t session_id, uint64_t package_id,
     data->package_type_id = DATA_ID;
     data->session_id = htobe64(session_id);
     data->package_id = htobe64(package_id);
-    data->nbr_of_bytes_to_be_sent = htobe32(nbr_of_bytes);
+    data->nbr_of_bytes_in_packet = htobe32(nbr_of_bytes);
     data->seq_of_bytes = bytes_to_send;
 }
 

@@ -117,6 +117,11 @@ int TCP_handle_conn_init(CONN *conn, int client_fd)
 int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
 {
     ssize_t written_length = writen(client_fd, conacc, sizeof (*conacc));
+    if (written_length < 0 )
+    {
+        error("TCP-send_CONACC-writen returned < 0\n");
+        return -1;
+    }
     if ((size_t) written_length < sizeof (*conacc)) 
     {
         error("TCP-send_CONACC_to_client-writen-wrote less than wanted size\n");
