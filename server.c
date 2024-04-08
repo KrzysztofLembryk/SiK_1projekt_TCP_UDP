@@ -142,7 +142,8 @@ int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
     }
 }
 
-// Function reads only metadata about upcoming data, meaning only:
+// Function reads only metadata about upcoming data (it also converts
+// data_metainfo from network to host byte order), meaning only:
 // - uint8_t package_type_id;
 // - uint64_t session_id;
 // - uint64_t package_id;
@@ -191,7 +192,7 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
     return 0;
 }
 
-void TCP_send_RJT(int client_fd, RJT *rjt)
+int TCP_send_RJT(int client_fd, RJT *rjt)
 {
     ssize_t written_length = writen(client_fd, rjt, sizeof (*rjt));
     if (written_length < 0 )
@@ -209,6 +210,40 @@ void TCP_send_RJT(int client_fd, RJT *rjt)
         printf("RJT reply sent\n");
         return 0;
     }
+}
+
+int TCP_send_RCVD(int client_fd, RCVD *rcvd)
+{
+    ssize_t written_length = writen(client_fd, rcvd, sizeof (*rcvd));
+    if (written_length < 0 )
+    {
+        error("TCP-send_RCVD-writen returned < 0\n");
+        return -1;
+    }
+    if ((size_t) written_length < sizeof (*rcvd)) 
+    {
+        error("TCP-send_RCVD_to_client-writen-wrote less than wanted size\n");
+        return -1;
+    }
+    else 
+    {
+        printf("RCVD reply sent\n");
+        return 0;
+    }
+}
+
+void TCP_read_data_to_buf(int client_fd, char *buf, 
+                                        uint32_t nbr_of_bytes_in_packet, uint64_t package_id)
+{
+    ssize_t len = readn(client_fd, buf, nbr_of_bytes_in_packet);
+    if (len < 0)
+        error("readn");
+}
+
+void TCP_print_data_to_stdout(char *buf, uint64_t package_id)
+{
+
+    printf("[packet: %" PRIu64 "]-->%.*s\n", package_id, buf);
 }
 
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
@@ -276,20 +311,48 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 
         // We read as long as we don't get declared nbr of bytes of data or
         // there is some error
-        while (nbr_of_bytes_received != total_nbr_of_bytes_to_be_sent)
+        while (nbr_of_bytes_received < total_nbr_of_bytes_to_be_sent)
         {
             DATA_INFO_t data_metainfo; 
+
             if (TCP_get_DATA_metainfo(client_fd, &data_metainfo, 
                 conn.session_id, prev_packet_id, &first_packet) != 0)
             {
                 // If received packet was incorrect we send RJT to client and 
                 // close connection
                 wrong_packet_err = true;
+                RJT rjt;
 
+                init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
+
+                int rjt_ret_val = TCP_send_RJT(client_fd, &rjt);
+
+                close(client_fd);
+                break;
             }
 
+            // If sent info about data is correct we read data to buffer and 
+            // then we print received data to stodout
+            nbr_of_bytes_received += data_metainfo.nbr_of_bytes_in_packet;
+
+            if (nbr_of_bytes_received > total_nbr_of_bytes_to_be_sent) 
+            {
+                error("Client sent more data than declared");
+            }
+
+            memset(buf, 0, sizeof(buf));
+            TCP_read_data_to_buf(client_fd, buf, data_metainfo.nbr_of_bytes_in_packet, data_metainfo.package_id);
+            TCP_print_data_to_stdout(buf, data_metainfo.package_id);
         }
 
+        if (wrong_packet_err)
+            continue;
+
+        // Communication was succesful thus we send RCVD to client
+        RCVD rcvd;
+        init_RCVD(&rcvd, conn.session_id);
+        TCP_send_RCVD(client_fd, &rcvd);
+        close(client_fd);
     }
 }
 
