@@ -25,7 +25,7 @@
 #define UDP_PROTOCOL 2
 #define UDPR_PROTOCOL 3
 
-struct sockaddr_in wait_for_client(int socket_fd, int *c_fd)
+struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd)
 {
     // We wait for client that wants to connect with us on accept function
     struct sockaddr_in client_address;
@@ -42,44 +42,6 @@ struct sockaddr_in wait_for_client(int socket_fd, int *c_fd)
 
     *c_fd = client_fd;
     return client_address;
-}
-
-void set_timeout_for_client_socket(int client_fd)
-{
-    // Set timeouts for the client socket so that we could prevent one 
-    // client connecting and no sending anything thus blocking our server
-    struct timeval time_o = {.tv_sec = MAX_WAIT, .tv_usec = 0};
-    setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &time_o, sizeof time_o);
-    setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &time_o, sizeof time_o);
-}
-
-int readn_error_handler(ssize_t read_length, size_t data_size)
-{
-    if (read_length < 0)
-    {
-        if (errno == EAGAIN) 
-        {
-            error("timeout\n"); 
-            return -1;
-        } 
-        else 
-        {
-            error("readn");
-            return -1;
-        }
-    }
-    else if (read_length == 0) 
-    {
-        error("connection closed read_len == 0\n");
-        return -1;
-    }
-    else if ((size_t) read_length < data_size) 
-    {
-        error("connection closed without providing full data structure\n");
-        return -1;
-    }
-
-    return 0;
 }
 
 // Function handles initialization of connection with client. It waits for data
@@ -257,7 +219,7 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
     while(true)
     {
         int client_fd = -1;
-        struct sockaddr_in client_address = wait_for_client(socket_fd, 
+        struct sockaddr_in client_address = TCP_wait_for_client(socket_fd, 
                                                             &client_fd);
 
         // We need to set time for our client in order to prevent client from 
