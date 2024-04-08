@@ -224,7 +224,7 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 
         // We need to set time for our client in order to prevent client from 
         // connecting and not sending anything thus blocking our server
-        set_timeout_for_client_socket(client_fd);
+        set_timeout_for_client_socket(client_fd, MAX_WAIT);
 
         // Now we want to receive CONN packet with package_type = CONN_ID and
         // protocol_id = TCP_PROTOCOL to establish connection with client

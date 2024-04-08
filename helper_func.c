@@ -2,6 +2,7 @@
 #include "err.h"
 #include <sys/socket.h>
 #include <string.h>
+#include <errno.h>
 
 server_type check_type_of_server(const char* input)
 {
@@ -30,11 +31,11 @@ void init_socket_fd(int *socket_fd, server_type type)
     }
 }
 
-void set_timeout_for_client_socket(int client_fd)
+void set_timeout_for_client_socket(int client_fd, int max_wait)
 {
     // Set timeouts for the client socket so that we could prevent one 
     // client connecting and no sending anything thus blocking our server
-    struct timeval time_o = {.tv_sec = MAX_WAIT, .tv_usec = 0};
+    struct timeval time_o = {.tv_sec = max_wait, .tv_usec = 0};
     setsockopt(client_fd, SOL_SOCKET, SO_RCVTIMEO, &time_o, sizeof time_o);
     setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &time_o, sizeof time_o);
 }
