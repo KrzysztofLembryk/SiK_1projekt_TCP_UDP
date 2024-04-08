@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <sys/socket.h>
-// #include <string.h>
+#include <string.h>
 // includes sockaddr:
 #include <netinet/in.h>
 // includes htonl etc.:
@@ -70,12 +70,12 @@ int readn_error_handler(ssize_t read_length, size_t data_size)
     }
     else if (read_length == 0) 
     {
-        printf("connection closed read_len == 0\n");
+        error("connection closed read_len == 0\n");
         return -1;
     }
     else if ((size_t) read_length < data_size) 
     {
-        printf("connection closed without providing full data structure\n");
+        error("connection closed without providing full data structure\n");
         return -1;
     }
 
@@ -95,12 +95,12 @@ int TCP_conn_init_helper(CONN *conn, int client_fd)
 
     if (conn->package_type_id != CONN_ID)
     {
-        printf("connection closed - wrong package_type_id\n");
+        error("connection closed - wrong package_type_id\n");
         return -2;
     }
     if (conn->protocol_id != TCP_PROTOCOL)
     {
-        printf("Wrong protocol\n");
+        error("Wrong protocol\n");
         return -2;
     }
     return 0;
@@ -110,15 +110,6 @@ int TCP_handle_conn_init(CONN *conn, int client_fd)
 {
     int init_ret_val = TCP_conn_init_helper(conn, client_fd);
 
-    if (init_ret_val == -1)
-    {
-        error("some error in nbr of read bytes closing connection \n");
-        // NIE WIEM CZY TRZEBA TERAZ COS KLIENTOWI WYSLAC
-    }
-    else if(init_ret_val == -2)
-    {
-        error("Wrong package_type_id, closing connection\n");
-    }
     return init_ret_val;
 }
 
@@ -233,17 +224,16 @@ int TCP_send_RCVD(int client_fd, RCVD *rcvd)
 }
 
 void TCP_read_data_to_buf(int client_fd, char *buf, 
-                                        uint32_t nbr_of_bytes_in_packet, uint64_t package_id)
+                                        uint32_t nbr_of_bytes_in_packet)
 {
     ssize_t len = readn(client_fd, buf, nbr_of_bytes_in_packet);
     if (len < 0)
         error("readn");
 }
 
-void TCP_print_data_to_stdout(char *buf, uint64_t package_id)
+void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len)
 {
-
-    printf("[packet: %" PRIu64 "]-->%.*s\n", package_id, buf);
+    printf("[packet: %" PRIu64 "]-->%.*s\n", package_id, (int)buff_len, buff);
 }
 
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
@@ -252,7 +242,7 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
     if (listen(socket_fd, QUEUE_LEN) < 0) 
         syserr("TCP-listen-error\n");
     
-    printf("address before getsockname %" PRId32 "\n", server_address->sin_addr.s_addr);
+    // printf("address before getsockname %" PRId32 "\n", server_address->sin_addr.s_addr);
 
     socklen_t length = (socklen_t) sizeof (*server_address);
     if (getsockname(socket_fd, (struct sockaddr *) server_address, &length) < 0)
@@ -325,7 +315,7 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 
                 init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
 
-                int rjt_ret_val = TCP_send_RJT(client_fd, &rjt);
+                TCP_send_RJT(client_fd, &rjt);
 
                 close(client_fd);
                 break;
@@ -340,9 +330,9 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
                 error("Client sent more data than declared");
             }
 
-            memset(buf, 0, sizeof(buf));
-            TCP_read_data_to_buf(client_fd, buf, data_metainfo.nbr_of_bytes_in_packet, data_metainfo.package_id);
-            TCP_print_data_to_stdout(buf, data_metainfo.package_id);
+            memset(buff, 0, sizeof(buff));
+            TCP_read_data_to_buf(client_fd, buff, data_metainfo.nbr_of_bytes_in_packet);
+            TCP_print_data_to_stdout(buff, data_metainfo.package_id, data_metainfo.nbr_of_bytes_in_packet);
         }
 
         if (wrong_packet_err)
