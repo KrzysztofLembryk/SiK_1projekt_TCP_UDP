@@ -191,6 +191,26 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
     return 0;
 }
 
+void TCP_send_RJT(int client_fd, RJT *rjt)
+{
+    ssize_t written_length = writen(client_fd, rjt, sizeof (*rjt));
+    if (written_length < 0 )
+    {
+        error("TCP-send_RJT-writen returned < 0\n");
+        return -1;
+    }
+    if ((size_t) written_length < sizeof (*rjt)) 
+    {
+        error("TCP-send_RJT_to_client-writen-wrote less than wanted size\n");
+        return -1;
+    }
+    else 
+    {
+        printf("RJT reply sent\n");
+        return 0;
+    }
+}
+
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 {
     // Since its TCP server we switch its socket to listening
@@ -252,12 +272,21 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
         uint64_t nbr_of_bytes_received = 0;
         uint64_t prev_packet_id = 0;
         bool first_packet = true;
+        bool wrong_packet_err = false;
 
+        // We read as long as we don't get declared nbr of bytes of data or
+        // there is some error
         while (nbr_of_bytes_received != total_nbr_of_bytes_to_be_sent)
         {
             DATA_INFO_t data_metainfo; 
             if (TCP_get_DATA_metainfo(client_fd, &data_metainfo, 
-                conn.session_id, prev_packet_id, &first_packet))
+                conn.session_id, prev_packet_id, &first_packet) != 0)
+            {
+                // If received packet was incorrect we send RJT to client and 
+                // close connection
+                wrong_packet_err = true;
+
+            }
 
         }
 
