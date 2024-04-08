@@ -53,6 +53,12 @@ void init_RCVD(RCVD *rcvd, uint64_t session_id)
     rcvd->session_id = htobe64(session_id);
 }
 
+void ntoh_CONN(CONN *conn)
+{
+    conn->session_id = be64toh(conn->session_id);
+    conn->nbr_of_bytes_to_be_sent = be64toh(conn->nbr_of_bytes_to_be_sent);
+}
+
 void ntoh_DATA_INFO(DATA_INFO_t *d_info)
 {
     d_info->session_id = be64toh(d_info->session_id);

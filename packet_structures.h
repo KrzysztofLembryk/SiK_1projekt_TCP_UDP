@@ -103,6 +103,8 @@ void init_RJT(RJT *rjt, uint64_t session_id, uint64_t package_id);
 
 void init_RCVD(RCVD *rcvd, uint64_t session_id);
 
+void ntoh_CONN(CONN *conn);
+
 void ntoh_DATA_INFO(DATA_INFO_t *d_info);
 
 #endif

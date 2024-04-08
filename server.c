@@ -151,7 +151,8 @@ int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
 // parameters are correct (i.e if we get consecutive package_id) without wasting
 // time and reading all data even though its incorrect
 int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo, 
-                            uint64_t session_id, uint64_t prev_packet_id)
+                            uint64_t session_id, uint64_t prev_packet_id, 
+                            bool *first_packet)
 {
     ssize_t read_length = readn(client_fd, data_metainfo, 
                                                     sizeof (*data_metainfo));
@@ -171,7 +172,17 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
         error("TCP_get_DATA_metainfo-wrong session id\n");
         return -1;
     }
-    if (data_metainfo->package_id != prev_packet_id + 1)
+    if (*first_packet)
+    {
+        *first_packet = false;
+        // prev_packet_id = 0 here since its first packet
+        if (data_metainfo->package_id != prev_packet_id)
+        {
+            error("TCP_get_DATA_metainfo-wrong first packet doesnt have package id = 0\n");
+            return -1;
+        }
+    }
+    else if (data_metainfo->package_id != prev_packet_id + 1)
     {
         error("TCP_get_DATA_metainfo-wrong not consecutive packet id\n");
         return -1; 
@@ -213,7 +224,7 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
         CONN conn;
         conn.package_type_id = 0;
         int init_ret_val = TCP_handle_conn_init(&conn, client_fd);
-        
+
         // We didnt receive correct CONN packet thus we end connection with
         // client and move on 
         if (init_ret_val != 0)
@@ -221,6 +232,8 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
             close(client_fd);
             continue;
         }  
+
+        ntoh_CONN(&conn);
 
         CONACC conacc;
         init_CONACC(&conacc, conn.session_id);
@@ -235,6 +248,18 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
         // Since its static it will be initialised only once, not every time
         // that loop gets here
         static char buff[BUFFOR_SIZE];
+        uint64_t total_nbr_of_bytes_to_be_sent = conn.nbr_of_bytes_to_be_sent;
+        uint64_t nbr_of_bytes_received = 0;
+        uint64_t prev_packet_id = 0;
+        bool first_packet = true;
+
+        while (nbr_of_bytes_received != total_nbr_of_bytes_to_be_sent)
+        {
+            DATA_INFO_t data_metainfo; 
+            if (TCP_get_DATA_metainfo(client_fd, &data_metainfo, 
+                conn.session_id, prev_packet_id, &first_packet))
+
+        }
 
     }
 }
