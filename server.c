@@ -153,6 +153,9 @@ int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
 int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo, 
                             uint64_t session_id, uint64_t prev_packet_id)
 {
+    ssize_t read_length = readn(client_fd, data_metainfo, 
+                                                    sizeof (*data_metainfo));
+    
 
 }
 

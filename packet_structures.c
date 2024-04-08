@@ -52,3 +52,10 @@ void init_RCVD(RCVD *rcvd, uint64_t session_id)
     rcvd->package_type_id = RCVD_ID;
     rcvd->session_id = htobe64(session_id);
 }
+
+void ntoh_DATA_INFO(DATA_INFO_t *d_info)
+{
+    d_info->session_id = be64toh(d_info->session_id);
+    d_info->package_id = be64toh(d_info->package_id);
+    d_info->nbr_of_bytes_in_packet = be32toh(d_info->nbr_of_bytes_in_packet);
+}
