@@ -53,50 +53,57 @@ void set_timeout_for_client_socket(int client_fd)
     setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &time_o, sizeof time_o);
 }
 
+int readn_error_handler(ssize_t read_length, size_t data_size)
+{
+    if (read_length < 0)
+    {
+        if (errno == EAGAIN) 
+        {
+            error("timeout\n"); 
+            return -1;
+        } 
+        else 
+        {
+            error("readn");
+            return -1;
+        }
+    }
+    else if (read_length == 0) 
+    {
+        printf("connection closed read_len == 0\n");
+        return -1;
+    }
+    else if ((size_t) read_length < data_size) 
+    {
+        printf("connection closed without providing full data structure\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 // Function handles initialization of connection with client. It waits for data
 // of type CONN, reads it, and checks whether read data has package_type equal
 // to CONN_ID if not, it returns -2. It also checks whether read data has 
 // correct protocol equal to TCP_PROTOCOL
 int TCP_conn_init_helper(CONN *conn, int client_fd)
 {
-    ssize_t read_lenght = readn(client_fd, conn, sizeof (*conn));
+    ssize_t read_length = readn(client_fd, conn, sizeof (*conn));
 
-    if (read_lenght < 0) {
-        if (errno == EAGAIN) 
-        {
-            printf("timeout\n"); 
-            return -1;
-        } 
-        else 
-        {
-            error("readn");
-        }
-    }
-    else if (read_lenght == 0) 
-    {
-        printf("connection closed read_len == 0\n");
+    if (readn_error_handler(read_length, sizeof (*conn)) != 0)
         return -1;
-    }
-    else if ((size_t) read_lenght < sizeof (*conn)) 
-    {
-        printf("connection closed without providing full data structure\n");
-        return -1;
-    }
 
     if (conn->package_type_id != CONN_ID)
     {
         printf("connection closed - wrong package_type_id\n");
         return -2;
     }
-    else
+    if (conn->protocol_id != TCP_PROTOCOL)
     {
-        if (conn->protocol_id != TCP_PROTOCOL)
-        {
-            printf("Wrong protocol\n");
-            return -2;
-        }
-        return 0;
+        printf("Wrong protocol\n");
+        return -2;
     }
+    return 0;
 }
 
 int TCP_handle_conn_init(CONN *conn, int client_fd)
@@ -105,12 +112,12 @@ int TCP_handle_conn_init(CONN *conn, int client_fd)
 
     if (init_ret_val == -1)
     {
-        printf("some error in nbr of read bytes closing connection \n");
+        error("some error in nbr of read bytes closing connection \n");
         // NIE WIEM CZY TRZEBA TERAZ COS KLIENTOWI WYSLAC
     }
     else if(init_ret_val == -2)
     {
-        printf("Wrong package_type_id, closing connection\n");
+        error("Wrong package_type_id, closing connection\n");
     }
     return init_ret_val;
 }
@@ -130,9 +137,23 @@ int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
     }
     else 
     {
-        printf("reply sent\n");
+        printf("CONACC reply sent\n");
         return 0;
     }
+}
+
+// Function reads only metadata about upcoming data, meaning only:
+// - uint8_t package_type_id;
+// - uint64_t session_id;
+// - uint64_t package_id;
+// - uint32_t nbr_of_bytes_in_packet; 
+// without real data that is being sent, so that we can quickly check if data 
+// parameters are correct (i.e if we get consecutive package_id) without wasting
+// time and reading all data even though its incorrect
+int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo, 
+                            uint64_t session_id, uint64_t prev_packet_id)
+{
+
 }
 
 void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
