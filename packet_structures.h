@@ -54,6 +54,17 @@ typedef struct __attribute__((__packed__))
     char *seq_of_bytes;
 } DATA;
 
+// Helper struct for reading only data's meta info, without real data that is 
+// stored in char *seq_of_bytes, so that we know how many bytes of real data we
+// need to read (this information is in uint32_t nbr_of_bytes_in_packet)
+typedef struct __attribute__((__packed__))
+{
+    uint8_t package_type_id;
+    uint64_t session_id;
+    uint64_t package_id;
+    uint32_t nbr_of_bytes_in_packet; 
+} DATA_INFO_t;
+
 typedef struct __attribute__((__packed__))
 {
     uint8_t package_type_id;

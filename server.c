@@ -19,6 +19,7 @@
 #include "protconst.h"
 #include "helper_func.h"
 
+#define BUFFOR_SIZE 64000
 #define QUEUE_LEN 5
 #define TCP_PROTOCOL 1
 #define UDP_PROTOCOL 2
@@ -149,6 +150,8 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
 
     printf("TCPserver-parent is listening on port %" PRIu16 "\n", 
         ntohs(server_address->sin_port));
+
+    
     
     while(true)
     {
@@ -183,6 +186,11 @@ void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
             close(client_fd);
             continue;
         }
+
+        // Since its static it will be initialised only once, not every time
+        // that loop gets here
+        static char buff[BUFFOR_SIZE];
+
     }
 }
 
