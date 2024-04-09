@@ -1,3 +1,5 @@
 *.o
 *.exe
 .vscode
+ppcb_client
+server
