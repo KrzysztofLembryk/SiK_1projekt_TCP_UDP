@@ -32,7 +32,7 @@ void my_vec_destruct(my_vec_t *my_vec)
 }
 
 // Function reallocates vector
-void my_vec_realocate(my_vec_t *my_vec)
+void realocate_my_vec(my_vec_t *my_vec)
 {
     uint64_t new_size;
 
@@ -59,7 +59,7 @@ void my_vec_push_back(my_vec_t *my_vec, char c)
 {
     if (my_vec->first_free_space_idx >= my_vec->buff_size)
     { 
-        my_vec_realocate(my_vec);
+        realocate_my_vec(my_vec);
     }
 
     my_vec->buff[my_vec->first_free_space_idx] = c;
@@ -77,6 +77,19 @@ char my_vec_get(my_vec_t *my_vec, uint64_t idx)
     return '\0';
 }
 
+// Function copies characters in buff starting at first free place in vec.
+// It handles reallocation when not enough space for all characters in buff
+// and also handles null terminated characters, since each buff is ended with 
+// termination character thus we want to copy buff_size - 1 characters to vec.
+void push_back_str_to_vec(my_vec_t *vec, char *buff, ssize_t buff_size)
+{
+    if (vec->occupied_size + buff_size >= vec->buff_size)
+        realocate_my_vec(vec);
+    
+    strncpy(vec->buff + vec->first_free_space_idx, buff, buff_size + 1);
+    vec->first_free_space_idx += (buff_size);
+    vec->occupied_size += (buff_size);
+}
 
 // This function reads stdin to read_buffer of constant size, and then it copies
 // data to reasizeable vec
@@ -90,6 +103,7 @@ void my_vec_read_stdin_with_buffor(my_vec_t *my_vec)
     while (fgets(read_buff, buff_size, stdin) != NULL) 
     {
         nbr_of_bytes_read = strlen(read_buff);
+        push_back_str_to_vec(my_vec, read_buff, nbr_of_bytes_read);
 
 
         printf("%zu characters were read.\n",nbr_of_bytes_read);
@@ -100,5 +114,7 @@ void my_vec_read_stdin_with_buffor(my_vec_t *my_vec)
         memset(read_buff, 'p', sizeof(read_buff));
     }
     printf("\n");
+    my_vec_push_back(my_vec, '\0');
+    printf("my_vec: %s\n", my_vec->buff);
 //    printf("Po petli\n"); 
 }
