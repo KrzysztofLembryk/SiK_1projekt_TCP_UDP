@@ -9,6 +9,7 @@
 #include <endian.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <time.h>
 
 #include "err.h"
 #include "common.h"
@@ -16,8 +17,18 @@
 #include "protconst.h"
 #include "helper_func.h"
 
-void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address)
+void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, unsigned int session_id)
 {
+    // Connect to the server.
+    if (connect(socket_fd, (struct sockaddr *) server_address,
+                (socklen_t) sizeof(*server_address)) < 0) 
+    {
+        syserr("cannot connect to the server");
+    }
+
+    CONN conn;
+    init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
+
 
 }
 
@@ -29,6 +40,10 @@ int main(int argc, char *argv[])
     if (argc != 4) 
         fatal("usage: %s <protocol type> (<host> <port>) or <server address:port>", argv[0]);
 
+    srand(time(NULL));   // Initialization, should only be called once.
+    unsigned int session_id = rand();      
+
+    my_vec_t *vec = read_stdin();
     communication_type type_of_comm = check_communication_type(argv[1]);
     const char *host = argv[2];
     uint16_t port = port_from_str_to_ul(argv[3]);
@@ -43,7 +58,7 @@ int main(int argc, char *argv[])
     switch (type_of_comm)
     {
     case TCP:
-        TCP_client_handler(socket_fd, &server_address);
+        TCP_client_handler(socket_fd, &server_address, vec, session_id);
         break; 
     case UDP:
 
@@ -52,6 +67,5 @@ int main(int argc, char *argv[])
         break;
     }
 
-    my_vec_t *vec = read_stdin();
     return 0;
 }

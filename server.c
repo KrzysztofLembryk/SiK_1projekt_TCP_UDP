@@ -21,9 +21,6 @@
 
 #define BUFFOR_SIZE 64000
 #define QUEUE_LEN 5
-#define TCP_PROTOCOL 1
-#define UDP_PROTOCOL 2
-#define UDPR_PROTOCOL 3
 
 struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd)
 {
