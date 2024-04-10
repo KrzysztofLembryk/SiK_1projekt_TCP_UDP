@@ -2,6 +2,6 @@
 
 int main()
 {
-    my_vec_t vec = read_stdin();
+    my_vec_t *vec = read_stdin();
     return 0;
 }
