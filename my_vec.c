@@ -5,7 +5,7 @@
 #include "my_vec.h"
 
 #define INIT_VEC_SIZE 4096
-#define BUFF_SIZE 9
+#define BUFF_SIZE 1024
 
 // -----HELPER FUNCTIONS-----
 
@@ -108,7 +108,7 @@ void my_vec_print(my_vec_t *my_vec)
 // This function reads stdin to read_buffer of constant size, and then it copies
 // data to reasizeable vec. Since it uses read() to read from STDIN, function 
 // after successfully reading all data also adds \0 to the end of vec.
-void my_vec_read_stdin_with_buffor(my_vec_t *my_vec)
+void my_vec_read_stdin(my_vec_t *my_vec)
 {
     static char read_buff[BUFF_SIZE];
     memset(read_buff, 0, sizeof(read_buff));
