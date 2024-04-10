@@ -86,4 +86,13 @@ void my_vec_read_stdin(my_vec_t *my_vec)
     size_t buff_size = BUFF_SIZE;
     size_t nbr_of_bytes_read = 0;
 
+    do
+    {
+        nbr_of_bytes_read = getline(&read_buff, &buff_size, stdin);
+
+        printf("%zu characters were read.\n",nbr_of_bytes_read);
+        printf("You typed: '%s'\n",read_buff);
+
+    } while (nbr_of_bytes_read != 0 || nbr_of_bytes_read != -1);
+    
 }
