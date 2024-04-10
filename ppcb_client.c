@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <time.h>
+#include <stdlib.h>
 
 #include "err.h"
 #include "common.h"
@@ -29,7 +30,20 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     CONN conn;
     init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
 
+    ssize_t written_length = writen(socket_fd, &conn, sizeof(conn));
 
+    if (written_length < 0) 
+        syserr("writen");
+    else if ((size_t) written_length != sizeof(conn)) 
+        fatal("incomplete writen");
+
+    CONACC conacc;
+    ssize_t read_length = readn(socket_fd, &conacc, sizeof(conacc));
+
+    if (readn_error_handler(read_length, sizeof (conacc)) != 0)
+        syserr("readn");
+    
+    ntoh_CONACC(&conacc);
 }
 
 int main(int argc, char *argv[])

@@ -59,6 +59,11 @@ void ntoh_CONN(CONN *conn)
     conn->nbr_of_bytes_to_be_sent = be64toh(conn->nbr_of_bytes_to_be_sent);
 }
 
+void ntoh_CONACC(CONACC *conacc)
+{
+    conacc->session_id = be64toh(conacc->session_id);
+}
+
 void ntoh_DATA_INFO(DATA_INFO_t *d_info)
 {
     d_info->session_id = be64toh(d_info->session_id);
