@@ -3,7 +3,8 @@
 #include "err.h"
 #include "my_vec.h"
 
-#define INIT_BUFFER_SIZE 5000
+#define INIT_VEC_SIZE 4096
+#define BUFF_SIZE 1024
 
 my_vec_t *my_vec_init()
 {
@@ -12,7 +13,7 @@ my_vec_t *my_vec_init()
     if (vec == NULL)
         fatal("my_vec_init - malloc didnt allocate\n");
 
-    vec->buff = calloc(INIT_BUFFER_SIZE, sizeof char);
+    vec->buff = calloc(INIT_VEC_SIZE, sizeof char);
 
     if (vec->buff == NULL)
         fatal("my_vec_init - calloc didnt allocate\n");
@@ -30,28 +31,35 @@ void my_vec_destruct(my_vec_t *my_vec)
     free(my_vec);
 }
 
+// Function reallocates vector
+void my_vec_realocate(my_vec_t *my_vec)
+{
+    uint64_t new_size;
+
+    if (my_vec->buff_size < UINT64_MAX / 2)
+        new_size = 2 * my_vec->buff_size;
+    else
+        new_size = UINT64_MAX;
+
+    char *temp = my_vec->buff;
+
+    my_vec->buff = calloc(new_size, sizeof char);
+
+    if (vec->buff == NULL)
+        fatal("my_vec_push_back - calloc didnt allocate\n");
+
+    my_vec->buff_size = new_size;
+
+    strncpy(my_vec->buff, temp, my_vec->occupied_size);
+    free(temp);
+    
+}
+
 void my_vec_push_back(my_vec_t *my_vec, char c)
 {
     if (my_vec->first_free_space_idx >= my_vec->buff_size)
     { 
-        uint64_t new_size;
-
-        if (my_vec->buff_size < UINT64_MAX / 2)
-            new_size = 2 * my_vec->buff_size;
-        else
-            new_size = UINT64_MAX;
-
-        char *temp = my_vec->buff;
-
-        my_vec->buff = calloc(new_size, sizeof char);
-
-        if (vec->buff == NULL)
-            fatal("my_vec_push_back - calloc didnt allocate\n");
-
-        my_vec->buff_size = new_size;
-
-        strncpy(my_vec->buff, temp, my_vec->occupied_size);
-        free(temp);
+        my_vec_realocate(my_vec);
     }
 
     my_vec->buff[my_vec->first_free_space_idx] = c;
@@ -69,3 +77,13 @@ char my_vec_get(my_vec_t *my_vec, uint64_t idx)
     return NULL;
 }
 
+
+// This function reads stdin to read_buffer of constant size, and then it copies
+// data to reasizeable vec
+void my_vec_read_stdin(my_vec_t *my_vec)
+{
+    static char read_buff[BUFF_SIZE];
+    size_t buff_size = BUFF_SIZE;
+    size_t nbr_of_bytes_read = 0;
+
+}
