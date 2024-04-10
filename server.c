@@ -198,23 +198,18 @@ void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len
     printf("[packet: %" PRIu64 "]-->%.*s\n", package_id, (int)buff_len, buff);
 }
 
-void TCP_handler(int socket_fd, struct sockaddr_in *server_address)
+void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 {
     // Since its TCP server we switch its socket to listening
     if (listen(socket_fd, QUEUE_LEN) < 0) 
         syserr("TCP-listen-error\n");
     
-    // printf("address before getsockname %" PRId32 "\n", server_address->sin_addr.s_addr);
-
     socklen_t length = (socklen_t) sizeof (*server_address);
     if (getsockname(socket_fd, (struct sockaddr *) server_address, &length) < 0)
         syserr("getsockname");
 
-
     printf("TCPserver-parent is listening on port %" PRIu16 "\n", 
         ntohs(server_address->sin_port));
-
-    
     
     while(true)
     {
@@ -370,7 +365,7 @@ int main(int argc, char *argv[])
     switch (type_of_server)
     {
     case TCP:
-        TCP_handler(socket_fd, &server_address);
+        TCP_server_handler(socket_fd, &server_address);
         break; 
     case UDP:
 
