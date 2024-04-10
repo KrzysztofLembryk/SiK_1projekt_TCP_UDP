@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
         fatal("usage of %s: <protocol type> <port number>\n", argv[0]);
     }
 
-    server_type type_of_server = check_type_of_server(argv[1]);
+    communication_type type_of_server = check_communication_type(argv[1]);
 
     // We read port, and change it from str to uint16
     uint16_t port = port_from_str_to_ul(argv[2]);

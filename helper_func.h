@@ -4,11 +4,11 @@
 #include <stddef.h>
 #include <sys/types.h>
 
-typedef enum server_type {TCP, UDP} server_type;
+typedef enum communication_type {TCP, UDP, UDPR} communication_type;
 
-server_type check_type_of_server(const char* input);
+communication_type check_communication_type(const char* input);
 
-void init_socket_fd(int *socket_fd, server_type type);
+void init_socket_fd(int *socket_fd, communication_type type);
 
 void set_timeout_for_client_socket(int client_fd, int max_wait);
 
