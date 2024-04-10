@@ -28,9 +28,8 @@ void my_vec_push_back(my_vec_t *my_vec, char c);
 
 char my_vec_get(my_vec_t *my_vec, uint64_t idx);
 
+void my_vec_print(my_vec_t *my_vec);
+
 void my_vec_read_stdin_with_buffor(my_vec_t *my_vec);
-
-void my_vec_read_stdin_by_char(my_vec_t *my_vec);
-
 
 #endif
