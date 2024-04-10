@@ -20,19 +20,18 @@ void realocate_my_vec(my_vec_t *my_vec)
         new_size = UINT64_MAX;
 
     char *temp = my_vec->buff;
-
     my_vec->buff = calloc(new_size, sizeof(char));
 
     if (my_vec->buff == NULL)
         fatal("my_vec_push_back - calloc didnt allocate\n");
 
-    printf("-----MAKING REALLOCATION-----\n");
-    printf("Old buffsize -> %lu, New buffsize -> %lu\n", my_vec->buff_size, new_size);
+    // printf("-----MAKING REALLOCATION-----\n");
+    // printf("Old buffsize -> %lu, New buffsize -> %lu\n", my_vec->buff_size, new_size);
+
     my_vec->buff_size = new_size;
 
     strncpy(my_vec->buff, temp, my_vec->occupied_size);
     free(temp);
-    
 }
 
 // Function copies characters in buff starting at first free place in vec.
@@ -45,6 +44,7 @@ void push_back_str_to_vec(my_vec_t *vec, char *buff, size_t buff_size)
         realocate_my_vec(vec);
     
     strncpy(vec->buff + vec->first_free_space_idx, buff, buff_size);
+
     vec->first_free_space_idx += (buff_size);
     vec->occupied_size += (buff_size);
 }
@@ -79,9 +79,7 @@ void my_vec_destruct(my_vec_t *my_vec)
 void my_vec_push_back(my_vec_t *my_vec, char c)
 {
     if (my_vec->first_free_space_idx >= my_vec->buff_size)
-    { 
         realocate_my_vec(my_vec);
-    }
 
     my_vec->buff[my_vec->first_free_space_idx] = c;
     my_vec->first_free_space_idx += 1;
@@ -104,16 +102,16 @@ void my_vec_print(my_vec_t *my_vec)
     printf("\n");
 }
 
-
 // This function reads stdin to read_buffer of constant size, and then it copies
 // data to reasizeable vec. Since it uses read() to read from STDIN, function 
 // after successfully reading all data also adds \0 to the end of vec.
 void my_vec_read_stdin(my_vec_t *my_vec)
 {
     static char read_buff[BUFF_SIZE];
-    memset(read_buff, 0, sizeof(read_buff));
     size_t buff_size = BUFF_SIZE;
     ssize_t nbr_of_bytes_read = 0;
+
+    memset(read_buff, 0, sizeof(read_buff));
 
     do
     {
