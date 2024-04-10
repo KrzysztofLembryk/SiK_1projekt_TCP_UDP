@@ -1,4 +1,4 @@
-#include "data_handler_lib.h"
+// #include "data_handler_lib.h"
 #include <unistd.h>
 #include <sys/socket.h>
 // includes sockaddr:
@@ -17,6 +17,15 @@
 #include "packet_structures.h"
 #include "protconst.h"
 #include "helper_func.h"
+#include "my_vec.h"
+
+my_vec_t *read_stdin()
+{
+    my_vec_t* my_vec = my_vec_init();
+    my_vec_read_stdin(my_vec);
+
+    return my_vec;
+}
 
 void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, unsigned int session_id)
 {
@@ -44,6 +53,10 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         syserr("readn");
     
     ntoh_CONACC(&conacc);
+
+    printf("Ive got CONACC\n");
+    printf("package type id: %d\n", conacc.package_type_id);
+    printf("session id: %" PRIu64 "\n", conacc.session_id);
 }
 
 int main(int argc, char *argv[])
