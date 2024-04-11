@@ -19,12 +19,54 @@
 #include "helper_func.h"
 #include "my_vec.h"
 
+#define SEND_BUFF_SIZE 16000
+
 my_vec_t *read_stdin()
 {
     my_vec_t* my_vec = my_vec_init();
     my_vec_read_stdin(my_vec);
 
     return my_vec;
+}
+
+void TCP_client_send_CONN(int socket_fd, CONN *conn)
+{
+    ssize_t written_length = writen(socket_fd, conn, sizeof(*conn));
+
+    if (written_length < 0) 
+        syserr("writen");
+    else if ((size_t) written_length != sizeof(conn)) 
+        fatal("incomplete writen");
+}
+
+TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
+{
+    uint32_t bytes_left = vec->occupied_size;
+    uint32_t bytes_sent = 0;
+    uint64_t start_cpy_pos = 0;
+    uint64_t curr_package_id = 0;
+    uint8_t buff[SEND_BUFF_SIZE];
+
+    while (bytes_sent != vec->occupied_size)
+    {
+        memset(buff, 0, sizeof(buff));
+        
+        if (bytes_left < SEND_BUFF_SIZE)
+        {
+            strncpy(buff, vec->buff + start_cpy_pos, bytes_left);
+
+            bytes_sent += bytes_left;
+            bytes_left -= bytes_left;
+        }
+        else
+        {
+            strncpy(buff, vec->buff + start_cpy_pos, SEND_BUFF_SIZE);
+
+            bytes_sent += SEND_BUFF_SIZE;
+            bytes_left -= SEND_BUFF_SIZE;
+            start_cpy_pos += SEND_BUFF_SIZE;
+        }
+    }
 }
 
 void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, unsigned int session_id)
@@ -37,26 +79,24 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     }
 
     CONN conn;
+
     init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
-
-    ssize_t written_length = writen(socket_fd, &conn, sizeof(conn));
-
-    if (written_length < 0) 
-        syserr("writen");
-    else if ((size_t) written_length != sizeof(conn)) 
-        fatal("incomplete writen");
+    TCP_client_send_CONN(socket_fd, &conn);
+    ntoh_CONN(&conn);
 
     CONACC conacc;
     ssize_t read_length = readn(socket_fd, &conacc, sizeof(conacc));
 
     if (readn_error_handler(read_length, sizeof (conacc)) != 0)
-        syserr("readn");
-    
+        return;
+
     ntoh_CONACC(&conacc);
 
     printf("Ive got CONACC\n");
     printf("package type id: %d\n", conacc.package_type_id);
     printf("session id: %" PRIu64 "\n", conacc.session_id);
+
+
 }
 
 int main(int argc, char *argv[])
