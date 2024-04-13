@@ -2,6 +2,7 @@
 #include <arpa/inet.h>
 #include <endian.h>
 #include <string.h>
+#include <stdio.h>
 #include "err.h"
 
 
@@ -78,6 +79,50 @@ void print_CONN(CONN *conn)
     printf("nbr of bytes to send: %" PRIu64 "\n", conn->nbr_of_bytes_to_be_sent);
 }
 
+void print_CONACC(CONACC *conacc)
+{
+    printf("[CONACC package]:\n");
+    printf("package type: %d\n", conacc->package_type_id);
+    printf("session id: %" PRIu64 "\n", conacc->session_id);
+}
+
+void print_CONRJT(CONRJT *conrjt)
+{
+    printf("[CONRJT package]:\n");
+    printf("package type: %d\n", conrjt->package_type_id);
+    printf("session id: %" PRIu64 "\n", conrjt->session_id);
+}
+
+void print_DATA(DATA *data)
+{
+    printf("[DATA package]:\n");
+    printf("package type: %d\n", data->package_type_id);
+    printf("package id: %" PRIu64 "\n", data->package_id);
+    printf("nbr of bytes to send: %" PRIu64 "\n", data->nbr_of_bytes_in_packet);
+}
+
+void print_ACC(ACC *acc)
+{
+    printf("[ACC package]:\n");
+    printf("package type: %d\n", acc->package_type_id);
+    printf("session id: %" PRIu64 "\n", acc->session_id);
+    printf("package id: %" PRIu64 "\n", acc->package_id);
+}
+
+void print_RJT(RJT *rjt)
+{
+    printf("[RJT package]:\n");
+    printf("package type: %d\n", rjt->package_type_id);
+    printf("session id: %" PRIu64 "\n", rjt->session_id);
+    printf("package id: %" PRIu64 "\n", rjt->package_id);
+}
+
+void print_RCVD(RCVD *rcvd)
+{
+    printf("[RCVD package]:\n");
+    printf("package type: %d\n", rcvd->package_type_id);
+    printf("session id: %" PRIu64 "\n", rcvd->session_id);
+}
 
 // -----NTOH FUNCTIONS-----
 
