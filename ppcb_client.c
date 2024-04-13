@@ -27,14 +27,20 @@ my_vec_t *read_stdin()
     return my_vec;
 }
 
-void TCP_client_send_CONN(int socket_fd, CONN *conn)
+void TCP_client_send_CONN(int socket_fd, CONN *conn, my_vec_t *vec)
 {
     ssize_t written_length = writen(socket_fd, conn, sizeof(*conn));
 
     if (written_length < 0) 
-        syserr("writen");
+    {
+        my_vec_destruct(vec);
+        syserr("TCP_client_send_CONN - writen < 0");
+    }
     else if ((size_t) written_length != sizeof(*conn)) 
-        fatal("incomplete writen");
+    {
+        my_vec_destruct(vec);
+        fatal("TCP_client_send_CONN - incomplete writen");
+    }
 }
 
 void TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
@@ -109,14 +115,17 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     CONN conn;
 
     init_CONN(&conn, session_id, UDP_PROTOCOL, vec->occupied_size);
-    TCP_client_send_CONN(socket_fd, &conn);
+    TCP_client_send_CONN(socket_fd, &conn, vec);
     ntoh_CONN(&conn);
 
     CONACC conacc;
     ssize_t read_length = readn(socket_fd, &conacc, sizeof(conacc));
 
     if (readn_error_handler(read_length, sizeof (conacc)) != 0)
+    {
+        my_vec_destruct(vec);
         return;
+    }
 
     ntoh_CONACC(&conacc);
 
@@ -145,7 +154,6 @@ int main(int argc, char *argv[])
     struct sockaddr_in server_address = get_server_address(host, port);
 
     printf("connecting to host: %s, port: %d\n", host, port);
-    printf("server_address.sin_addr.s_addr: %d\n", server_address.sin_addr.s_addr);
 
     int socket_fd;
     init_socket_fd(&socket_fd, type_of_comm);

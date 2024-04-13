@@ -1,6 +1,7 @@
 #include "packet_structures.h"
 #include <arpa/inet.h>
 #include <endian.h>
+#include <string.h>
 #include "err.h"
 
 void init_CONN(CONN *conn, uint64_t session_id, uint8_t protocol_id, 
