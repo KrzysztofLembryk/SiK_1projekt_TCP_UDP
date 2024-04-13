@@ -1,7 +1,7 @@
 #include <stdio.h>
 // for close():
 #include <unistd.h>
-#include <inttypes.h>
+// #include <inttypes.h>
 #include <string.h>
 // includes sockaddr:
 #include <netinet/in.h>
@@ -16,6 +16,8 @@
 #include "protconst.h"
 #include "helper_func.h"
 #include "server_TCP_lib.h"
+
+#define BUFFOR_SIZE 64000
 
 struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd)
 {
@@ -191,10 +193,10 @@ void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len
     // printf("[packet: %" PRIu64 "]:\n", package_id);
 }
 
-void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address)
+void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int queue_len)
 {
     // Since its TCP server we switch its socket to listening
-    if (listen(socket_fd, QUEUE_LEN) < 0) 
+    if (listen(socket_fd, queue_len) < 0) 
         syserr("TCP-listen-error\n");
     
     socklen_t length = (socklen_t) sizeof (*server_address);

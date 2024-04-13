@@ -8,12 +8,6 @@
 #include "stdbool.h"
 
 
-
-#define BUFFOR_SIZE 64000
-#define QUEUE_LEN 5
-
-
-
 struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd);
 
 
@@ -43,6 +37,6 @@ void TCP_read_data_to_buf(int client_fd, char *buf,
 void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len);
 
 
-void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address);
+void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int queue_len);
 
 #endif
