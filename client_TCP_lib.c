@@ -14,10 +14,9 @@
 
 #include "err.h"
 #include "common.h"
-// #include "packet_structures.h"
 #include "protconst.h"
 #include "helper_func.h"
-// #include "my_vec.h"
+#include "client_TCP_lib.h"
 
 #define SUCCESS 0
 
