@@ -1,0 +1,48 @@
+#ifndef SERVER_TCP_LIB_H
+#define SERVER_TCP_LIB_H
+
+
+#include <inttypes.h>
+#include <sys/socket.h>
+#include "packet_structures.h"
+#include "stdbool.h"
+
+
+
+#define BUFFOR_SIZE 64000
+#define QUEUE_LEN 5
+
+
+
+struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd);
+
+
+int TCP_conn_init_helper(CONN *conn, int client_fd);
+
+
+int TCP_handle_conn_init(CONN *conn, int client_fd);
+
+
+int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc);
+
+
+int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo, 
+                            uint64_t session_id, uint64_t prev_packet_id, 
+                            bool *first_packet);
+
+
+int TCP_send_RJT(int client_fd, RJT *rjt);
+
+
+int TCP_send_RCVD(int client_fd, RCVD *rcvd);
+
+void TCP_read_data_to_buf(int client_fd, char *buf, 
+                                        uint32_t nbr_of_bytes_in_packet);
+
+
+void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len);
+
+
+void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address);
+
+#endif

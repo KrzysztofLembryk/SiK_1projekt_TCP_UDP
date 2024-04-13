@@ -98,7 +98,7 @@ void print_DATA(DATA *data)
     printf("[DATA package]:\n");
     printf("package type: %d\n", data->package_type_id);
     printf("package id: %" PRIu64 "\n", data->package_id);
-    printf("nbr of bytes to send: %" PRIu64 "\n", data->nbr_of_bytes_in_packet);
+    printf("nbr of bytes to send: %" PRIu32 "\n", data->nbr_of_bytes_in_packet);
 }
 
 void print_ACC(ACC *acc)

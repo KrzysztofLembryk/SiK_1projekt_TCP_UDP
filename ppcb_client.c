@@ -140,14 +140,25 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 
     sleep(5);
     printf("Sending data\n");
-    TCP_client_send_DATA(socket_fd, vec, session_id);
+
+    if (TCP_client_send_DATA(socket_fd, vec, session_id) != SUCCESS)
+        return;
 
     RCVD rcvd;
     read_length = readn(socket_fd, &rcvd, sizeof(rcvd));
 
     if (readn_error_handler(read_length, sizeof (rcvd)) != SUCCESS)
         return;
-    printf("received RCVD\n");
+
+    // Session id might be different in received data since we didnt invoke
+    // ntoh function for RCVD
+    printf("RCVD id: %d, RJT id: %d\n", RCVD_ID, RJT_ID);
+    print_RCVD(&rcvd);
+
+    if (rcvd.package_type_id == RCVD_ID) 
+        printf("received RCVD\n");
+    else
+        printf("received RJT\n");
 }
 
 int main(int argc, char *argv[])
@@ -186,6 +197,9 @@ int main(int argc, char *argv[])
             my_vec_destruct(vec);
             break; 
         case UDP:
+
+            break;
+        case UDPR:
 
             break;
         default:
