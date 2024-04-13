@@ -53,7 +53,13 @@ void TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
         if (bytes_left < SEND_BUFF_SIZE)
         {
             strncpy(buff, vec->buff + start_cpy_pos, bytes_left);
-            init_DATA(&data, session_id, curr_package_id, bytes_left, buff);
+
+            if (init_DATA(&data, session_id, curr_package_id, 
+                                                bytes_left, buff) != 0 )
+            {
+                my_vec_destruct(vec);
+                fatal("init_DATA - given nbr of bytes is greater than BUFF SIZE!\n");
+            }
 
             bytes_sent += bytes_left;
             bytes_left -= bytes_left;
@@ -61,7 +67,12 @@ void TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
         else
         {
             strncpy(buff, vec->buff + start_cpy_pos, SEND_BUFF_SIZE);
-            init_DATA(&data, session_id, curr_package_id, SEND_BUFF_SIZE, buff);
+            if (init_DATA(&data, session_id, curr_package_id, 
+                                                SEND_BUFF_SIZE, buff) != 0)
+            {
+                my_vec_destruct(vec);
+                fatal("init_DATA - given nbr of bytes is greater than BUFF SIZE!\n");
+            }
 
             bytes_sent += SEND_BUFF_SIZE;
             bytes_left -= SEND_BUFF_SIZE;
@@ -72,10 +83,18 @@ void TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
         ssize_t written_length = writen(socket_fd, &data, sizeof(data));
 
         if (written_length < 0) 
+        {
+            my_vec_destruct(vec);
             syserr("send_DATA - writen < 0 \n");
+        }
         else if ((size_t) written_length != sizeof(data)) 
+        {
+            my_vec_destruct(vec);
             fatal("send_DATA - incomplete writen\n");
+        }
     }
+
+    my_vec_destruct(vec);
 }
 
 void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, unsigned int session_id)
@@ -89,7 +108,7 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 
     CONN conn;
 
-    init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
+    init_CONN(&conn, session_id, UDP_PROTOCOL, vec->occupied_size);
     TCP_client_send_CONN(socket_fd, &conn);
     ntoh_CONN(&conn);
 
@@ -120,7 +139,6 @@ int main(int argc, char *argv[])
     srand(time(NULL));   // Initialization, should only be called once.
     unsigned int session_id = rand();      
 
-    my_vec_t *vec = read_stdin();
     communication_type type_of_comm = check_communication_type(argv[1]);
     const char *host = argv[2];
     uint16_t port = port_from_str_to_ul(argv[3]);
@@ -131,6 +149,13 @@ int main(int argc, char *argv[])
 
     int socket_fd;
     init_socket_fd(&socket_fd, type_of_comm);
+
+    // We read stdin so late since before reading it errors might occur 
+    // regarding creating socket/checking comm type etc. So we would need to 
+    // deallocate our vector after each error, but now since we read input at
+    // the end allocation happens only after all previous operations were 
+    // successful
+    my_vec_t *vec = read_stdin();
 
     switch (type_of_comm)
     {

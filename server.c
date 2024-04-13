@@ -30,7 +30,7 @@ struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd)
                             &((socklen_t){sizeof(client_address)}));
 
     if (client_fd < 0) 
-        syserr("TCPserver-accept");
+        syserr("TCPserver-accept - client_fd < 0");
     
     char const *client_ip = inet_ntoa(client_address.sin_addr);
     uint16_t client_port = ntohs(client_address.sin_port);
@@ -54,12 +54,12 @@ int TCP_conn_init_helper(CONN *conn, int client_fd)
 
     if (conn->package_type_id != CONN_ID)
     {
-        error("connection closed - wrong package_type_id\n");
+        error("connection closed - wrong package_type_id");
         return -2;
     }
     if (conn->protocol_id != TCP_PROTOCOL)
     {
-        error("Wrong protocol\n");
+        error("Wrong protocol");
         return -2;
     }
     return 0;

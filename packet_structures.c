@@ -24,7 +24,7 @@ void init_CONRJT(CONRJT *conrjt, uint64_t session_id)
     conrjt->session_id = htobe64(session_id);
 }
 
-void init_DATA(DATA *data, uint64_t session_id, uint64_t package_id, 
+int init_DATA(DATA *data, uint64_t session_id, uint64_t package_id, 
                 uint32_t nbr_of_bytes, char *bytes_to_send)
 {
     data->package_type_id = DATA_ID;
@@ -33,9 +33,10 @@ void init_DATA(DATA *data, uint64_t session_id, uint64_t package_id,
     data->nbr_of_bytes_in_packet = htobe32(nbr_of_bytes);
 
     if (nbr_of_bytes > SEND_BUFF_SIZE)
-        fatal("init_DATA - given nbr of bytes is greater than BUFF SIZE!\n");
+        return -1;
 
     strncpy(data->seq_of_bytes, bytes_to_send, nbr_of_bytes);
+    return 0;
 }
 
 void init_ACC(ACC *acc, uint64_t session_id, uint64_t package_id)

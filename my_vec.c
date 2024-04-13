@@ -120,11 +120,14 @@ void my_vec_read_stdin(my_vec_t *my_vec)
         if (nbr_of_bytes_read == 0) 
             break;
         else if (nbr_of_bytes_read < 0)
+        {
+            my_vec_destruct(my_vec);
             fatal("my_vec_read_stdin - read func returned val < 0\n");
+        }
         
         push_back_str_to_vec(my_vec, read_buff, nbr_of_bytes_read);
         // printf("%zu characters were read.\n",nbr_of_bytes_read);
-        my_vec_print(my_vec);
+        // my_vec_print(my_vec);
         memset(read_buff, 0, sizeof(read_buff));
 
     } while(nbr_of_bytes_read != 0);
