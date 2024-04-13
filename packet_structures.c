@@ -34,9 +34,13 @@ int init_DATA(DATA *data, uint64_t session_id, uint64_t package_id,
     data->nbr_of_bytes_in_packet = htobe32(nbr_of_bytes);
 
     if (nbr_of_bytes > SEND_BUFF_SIZE)
+    {
+        error("init_DATA - given nbr of bytes is greater than BUFF SIZE!\n");
         return -1;
+    }
 
     strncpy(data->seq_of_bytes, bytes_to_send, nbr_of_bytes);
+
     return 0;
 }
 
