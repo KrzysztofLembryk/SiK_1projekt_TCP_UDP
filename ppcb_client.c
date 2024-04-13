@@ -19,7 +19,7 @@
 #include "helper_func.h"
 #include "my_vec.h"
 
-#define SEND_BUFF_SIZE 16000
+#define SEND_BUFF_SIZE 32000
 
 my_vec_t *read_stdin()
 {

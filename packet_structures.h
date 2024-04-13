@@ -12,6 +12,7 @@
 #define ACC_ID 5
 #define RJT_ID 6
 #define RCVD_ID 7
+#define BUFF_SIZE 32000
 // All sent numbers need to be in network byte order
 
 // -----DATA STRUCTURES-----
@@ -51,7 +52,7 @@ typedef struct __attribute__((__packed__))
     uint64_t session_id;
     uint64_t package_id;
     uint32_t nbr_of_bytes_in_packet; 
-    char *seq_of_bytes;
+    char seq_of_bytes[BUFF_SIZE];
 } DATA;
 
 // Helper struct for reading only data's meta info, without real data that is 
