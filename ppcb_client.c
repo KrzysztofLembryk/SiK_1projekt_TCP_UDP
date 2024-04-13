@@ -19,8 +19,6 @@
 #include "helper_func.h"
 #include "my_vec.h"
 
-#define SEND_BUFF_SIZE 32000
-
 my_vec_t *read_stdin()
 {
     my_vec_t* my_vec = my_vec_init();
@@ -35,17 +33,18 @@ void TCP_client_send_CONN(int socket_fd, CONN *conn)
 
     if (written_length < 0) 
         syserr("writen");
-    else if ((size_t) written_length != sizeof(conn)) 
+    else if ((size_t) written_length != sizeof(*conn)) 
         fatal("incomplete writen");
 }
 
-TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
+void TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
 {
     uint32_t bytes_left = vec->occupied_size;
     uint32_t bytes_sent = 0;
     uint64_t start_cpy_pos = 0;
     uint64_t curr_package_id = 0;
-    uint8_t buff[SEND_BUFF_SIZE];
+    char buff[SEND_BUFF_SIZE + 1];
+    DATA data;
 
     while (bytes_sent != vec->occupied_size)
     {
@@ -54,6 +53,7 @@ TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
         if (bytes_left < SEND_BUFF_SIZE)
         {
             strncpy(buff, vec->buff + start_cpy_pos, bytes_left);
+            init_DATA(&data, session_id, curr_package_id, bytes_left, buff);
 
             bytes_sent += bytes_left;
             bytes_left -= bytes_left;
@@ -61,11 +61,20 @@ TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
         else
         {
             strncpy(buff, vec->buff + start_cpy_pos, SEND_BUFF_SIZE);
+            init_DATA(&data, session_id, curr_package_id, SEND_BUFF_SIZE, buff);
 
             bytes_sent += SEND_BUFF_SIZE;
             bytes_left -= SEND_BUFF_SIZE;
             start_cpy_pos += SEND_BUFF_SIZE;
         }
+
+        curr_package_id++;
+        ssize_t written_length = writen(socket_fd, &data, sizeof(data));
+
+        if (written_length < 0) 
+            syserr("send_DATA - writen < 0 \n");
+        else if ((size_t) written_length != sizeof(data)) 
+            fatal("send_DATA - incomplete writen\n");
     }
 }
 
@@ -95,7 +104,8 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     printf("Ive got CONACC\n");
     printf("package type id: %d\n", conacc.package_type_id);
     printf("session id: %" PRIu64 "\n", conacc.session_id);
-
+    sleep(5);
+    TCP_client_send_DATA(socket_fd, vec, session_id);
 
 }
 

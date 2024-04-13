@@ -1,6 +1,7 @@
 #include "packet_structures.h"
 #include <arpa/inet.h>
 #include <endian.h>
+#include "err.h"
 
 void init_CONN(CONN *conn, uint64_t session_id, uint8_t protocol_id, 
                 uint64_t nbr_of_bytes)
@@ -30,7 +31,11 @@ void init_DATA(DATA *data, uint64_t session_id, uint64_t package_id,
     data->session_id = htobe64(session_id);
     data->package_id = htobe64(package_id);
     data->nbr_of_bytes_in_packet = htobe32(nbr_of_bytes);
-    data->seq_of_bytes = bytes_to_send;
+
+    if (nbr_of_bytes > SEND_BUFF_SIZE)
+        fatal("init_DATA - given nbr of bytes is greater than BUFF SIZE!\n");
+
+    strncpy(data->seq_of_bytes, bytes_to_send, nbr_of_bytes);
 }
 
 void init_ACC(ACC *acc, uint64_t session_id, uint64_t package_id)
