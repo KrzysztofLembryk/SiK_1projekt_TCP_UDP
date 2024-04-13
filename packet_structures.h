@@ -13,6 +13,7 @@
 #define RJT_ID 6
 #define RCVD_ID 7
 #define SEND_BUFF_SIZE 32000
+
 // All sent numbers need to be in network byte order
 
 // -----DATA STRUCTURES-----
@@ -103,6 +104,24 @@ void init_ACC(ACC *acc, uint64_t session_id, uint64_t package_id);
 void init_RJT(RJT *rjt, uint64_t session_id, uint64_t package_id);
 
 void init_RCVD(RCVD *rcvd, uint64_t session_id);
+
+// -----PRINT FUNCTIONS-----
+
+void print_CONN(CONN *conn);
+
+void print_CONACC(CONACC *conacc);
+
+void print_CONRJT(CONRJT *conrjt);
+
+void print_DATA(DATA *data);
+
+void print_ACC(ACC *acc);
+
+void print_RJT(RJT *rjt);
+
+void print_RCVD(RCVD *rcvd);
+
+// -----NTOH FUNCTIONS-----
 
 void ntoh_CONN(CONN *conn);
 

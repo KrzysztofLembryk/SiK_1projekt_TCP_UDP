@@ -138,9 +138,6 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 
     ntoh_CONACC(&conacc);
 
-    printf("Ive got CONACC\n");
-    printf("package type id: %d\n", conacc.package_type_id);
-    printf("session id: %" PRIu64 "\n", conacc.session_id);
     sleep(5);
     printf("Sending data\n");
     TCP_client_send_DATA(socket_fd, vec, session_id);

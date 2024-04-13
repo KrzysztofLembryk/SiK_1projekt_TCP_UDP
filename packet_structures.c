@@ -4,6 +4,9 @@
 #include <string.h>
 #include "err.h"
 
+
+// -----INIT FUNCTIONS-----
+
 void init_CONN(CONN *conn, uint64_t session_id, uint8_t protocol_id, 
                 uint64_t nbr_of_bytes)
 {
@@ -63,6 +66,20 @@ void init_RCVD(RCVD *rcvd, uint64_t session_id)
     rcvd->package_type_id = RCVD_ID;
     rcvd->session_id = htobe64(session_id);
 }
+
+// -----PRINT FUNCTIONS-----
+
+void print_CONN(CONN *conn)
+{
+    printf("[CONN package]:\n");
+    printf("package type: %d\n", conn->package_type_id);
+    printf("session id: %" PRIu64 "\n", conn->session_id);
+    printf("protocol id: %d\n", conn->protocol_id);
+    printf("nbr of bytes to send: %" PRIu64 "\n", conn->nbr_of_bytes_to_be_sent);
+}
+
+
+// -----NTOH FUNCTIONS-----
 
 void ntoh_CONN(CONN *conn)
 {
