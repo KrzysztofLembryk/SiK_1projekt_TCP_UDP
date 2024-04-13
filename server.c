@@ -11,14 +11,11 @@
 #include "helper_func.h"
 #include "protconst.h"
 #include "server_TCP_lib.h"
+#include "server_UDP_lib.h"
 
 
 #define QUEUE_LEN 5
 
-void UDP_handler(int socket_fd)
-{
-
-}
 
 int main(int argc, char *argv[])
 {
@@ -80,7 +77,7 @@ int main(int argc, char *argv[])
         TCP_server_handler(socket_fd, &server_address, QUEUE_LEN);
         break; 
     case UDP:
-
+        UDP_server_handler(socket_fd, &server_address);
         break;
     default:
         break;

@@ -28,7 +28,10 @@ struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd)
                             &((socklen_t){sizeof(client_address)}));
 
     if (client_fd < 0) 
+    {
+        close(socket_fd);
         syserr("TCPserver-accept - client_fd < 0");
+    }
     
     char const *client_ip = inet_ntoa(client_address.sin_addr);
     uint16_t client_port = ntohs(client_address.sin_port);
