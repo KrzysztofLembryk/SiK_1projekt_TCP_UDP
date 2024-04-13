@@ -1,6 +1,7 @@
 #include <stdio.h>
 // for close():
 #include <unistd.h>
+#include <sys/socket.h>
 // #include <inttypes.h>
 #include <string.h>
 // includes sockaddr:

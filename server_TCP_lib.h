@@ -3,7 +3,6 @@
 
 
 #include <inttypes.h>
-#include <sys/socket.h>
 #include "packet_structures.h"
 #include "stdbool.h"
 
