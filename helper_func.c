@@ -76,3 +76,9 @@ void make_error_msg(const char *func_name, const char *msg)
     strcat(text, msg);
     error(text);
 }
+
+void print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len)
+{
+    printf("[packet: %" PRIu64 "]:\n%.*s\n", package_id, (int)buff_len, buff);
+    // printf("[packet: %" PRIu64 "]:\n", package_id);
+}

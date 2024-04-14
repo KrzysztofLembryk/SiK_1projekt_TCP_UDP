@@ -19,6 +19,7 @@
 #define DEFAULT_FLAG 0
 #define SUCCESS 0
 #define ERROR -1
+#define WRONG_SESSION_ID -2
 
 // - Function reads maximally BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
@@ -41,12 +42,12 @@ ssize_t read_data_to_buffer(int socket_fd, char *buff,
     if (read_bytes < 0)
     {
         make_error_msg(__FUNCTION__, " - read_bytes < 0");
-        return -1;
+        return ERROR;
     }
     if (read_bytes == 0)
     {
         make_error_msg(__FUNCTION__, " - read_bytes == 0");
-        return -1;
+        return ERROR;
     }
     return read_bytes;
 }
@@ -135,19 +136,24 @@ int check_if_correct_DATA_packet(char *buff,
     ntoh_DATA_INFO(d_info);
     print_DATA_INFO(d_info);
 
+    if (d_info->session_id != conn->session_id)
+    {
+        make_error_msg(__FUNCTION__, " - received DATA package has wrong session id");
+        return WRONG_SESSION_ID;
+    }
     if (d_info->package_type_id != DATA_ID)
     {
         make_error_msg(__FUNCTION__, " - received pacakge_type is not DATA");
         return ERROR;
     }
-    if (d_info->session_id != conn->session_id)
-    {
-        make_error_msg(__FUNCTION__, " - received DATA package has wrong session id");
-        return ERROR;
-    }
     if (d_info->package_id != curr_package_id)
     {
-        make_error_msg(__FUNC__, " - received DATA package has wrong package id");
+        make_error_msg(__FUNCTION__, " - received DATA package has wrong package id");
+        return ERROR;
+    }
+    if (read_bytes - sizeof(*d_info) - d_info->nbr_of_bytes_in_packet != 0)
+    {
+        make_error_msg(__FUNCTION__, " - nbr of received bytes from client is not equal to decalred nbr of bytes in DATA_INFO header");
         return ERROR;
     }
 
@@ -172,11 +178,28 @@ int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
             continue;
 
         DATA_INFO_t data_info;
-
-        if (check_if_correct_DATA_packet(buff, read_bytes, conn,
-                                &data_info, curr_package_id) != SUCCESS)
+        int ret_val = check_if_correct_DATA_packet(buff, read_bytes, conn,
+                                &data_info, curr_package_id);
+        if (ret_val == WRONG_SESSION_ID) 
         {
+            // This means that somebody else sent us some data since it has 
+            // wrong session id (We assume that session id is unique), thus we
+            // dont want to stop receiving data from our client so we wait for
+            // another package, and send CONRJT to client who sent wrong one.
+            // send CONRJT
+            continue;
         }
+        else if (ret_val == ERROR)
+        {
+            // Our client sent package with wrong data so we end connection
+            // send RJT
+            break;
+        }
+
+        curr_package_id++;
+        bytes_recvd += data_info.nbr_of_bytes_in_packet;
+
+        print_data_to_stdout(buff + sizeof(data_info), curr_package_id, data_info.nbr_of_bytes_in_packet);
     }
 }
 
