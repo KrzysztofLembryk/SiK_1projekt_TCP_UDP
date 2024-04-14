@@ -14,4 +14,6 @@ void set_timeout_for_client_socket(int client_fd, int max_wait);
 
 int readn_error_handler(ssize_t read_length, size_t data_size);
 
+void make_error_msg(char *func_name, char *msg);
+
 #endif

@@ -18,35 +18,45 @@
 // headers
 #define BUFFOR_SIZE 65000
 #define DEFAULT_FLAG 0
+#define SUCCESS 0
 
-int check_if_CONN(char *buff, int buff_size, ssize_t read_bytes, CONN *conn)
+int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {
     if (read_bytes < 0)
     {
-        error("UDP_wait_for_CONN - recvfrom < 0");
+        char msg[100];
+
+        strcpy(msg, __FUNCTION__);
+        strcat(msg, " - read_bytes < 0");
+        error(msg);
+
         return -1;
     }
-    if (read_bytes != sizeof(CONN))
-    {
-        printf("sizeof CONN: %ld\n", sizeof(CONN));
-        error("UDP_wait_for_CONN - recv package size not equal to CONN size");
+    if (cast_buff_to(conn, sizeof(*conn), buff, (size_t)read_bytes) != SUCCESS)
         return -1;
-    }
-
-    conn->package_type_id = (uint8_t)buff[0];
-    size_t shift = sizeof(conn->package_type_id);
-
-    memcpy(&conn->session_id, buff + shift, sizeof(conn->session_id));
-
-    shift += sizeof(conn->session_id);
-
-    memcpy(&conn->protocol_id, buff + shift, sizeof(conn->protocol_id));
-
-    shift += sizeof(conn->protocol_id);
-
-    memcpy(&conn->nbr_of_bytes_to_be_sent, buff + shift, sizeof(conn->nbr_of_bytes_to_be_sent));
 
     ntoh_CONN(conn);
+
+    if (conn->package_type_id != CONN_ID)
+    {
+        char msg[100];
+
+        strcpy(msg, __FUNCTION__);
+        strcat(msg, " - package type id is not CONN");
+        error(msg);
+
+        return -1;
+    }
+    if (conn->protocol_id != UDP_PROTOCOL || conn->protocol_id != UDPR_PROTOCOL)
+    {
+        char msg[100];
+        strcpy(msg, __FUNCTION__);
+        strcat(msg, " - protocol is not UDP or UDPR");
+        error(msg);
+
+        return -1;
+    }
+
     print_CONN(conn);
 
     return 0;
@@ -75,8 +85,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
                                       (struct sockaddr *)&client_address,
                                       (socklen_t*)&client_address_len);
 
-        int ret_val = check_if_CONN(buff, BUFFOR_SIZE, read_bytes,
-                                               &conn);
+        int ret_val = check_if_CONN(buff, read_bytes, &conn);
 
         if (conn.package_type_id != CONN_ID)
         {

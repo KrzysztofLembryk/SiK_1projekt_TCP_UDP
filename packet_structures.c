@@ -143,3 +143,30 @@ void ntoh_DATA_INFO(DATA_INFO_t *d_info)
     d_info->package_id = be64toh(d_info->package_id);
     d_info->nbr_of_bytes_in_packet = be32toh(d_info->nbr_of_bytes_in_packet);
 }
+
+// -----CAST FUNCTIONS-----
+
+// Function casts bytes_in_buffer size data stored in buffer, to given void *ptr
+// it also checks if ptr_size == bytes_in_buff if not it returns -1 
+// it also handles exception considering DATA_INFO structure, which can have 
+// size smaller than nbr of bytes in buff 
+int cast_buff_to(void *ptr, size_t ptr_size, char *buff, size_t bytes_in_buff)
+{
+    // First byte in each package is package_type_id, only DATA package can have
+    // greater nbr of bytes in buffer than sizeof(DATA), since additional bytes
+    // are real data that was sent.
+    if (bytes_in_buff != ptr_size && buff[0] != DATA_ID)
+    {
+        char msg[100];
+
+        strcpy(msg, __FUNCTION__);
+        strcpy(msg, "- recv package size not equal to given packet size");
+        error(msg);
+
+        return -1;
+    }
+
+    memcpy(ptr, buff, ptr_size);
+
+    return 0;
+}

@@ -137,16 +137,6 @@ void ntoh_RJT(RJT *rjt);
 
 // -----CAST FUNCTIONS-----
 
-void cast_to_CONN(CONN *conn, char *buff);
-
-void cast_to_CONACC(CONACC *conacc, char *buff);
-
-void cast_to_CONRJT(CONRJT *conrjt, char *buff);
-
-void cast_to_DATA_INFO(DATA_INFO_t *d_info, char *buff);
-
-void cast_to_ACC(ACC *acc, char *buff);
-
-void cast_to_RJT(RJT *rjt, char *buff);
+int cast_buff_to(void *ptr, size_t ptr_size, char *buff, size_t bytes_in_buff);
 
 #endif

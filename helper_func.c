@@ -66,3 +66,13 @@ int readn_error_handler(ssize_t read_length, size_t data_size)
 
     return 0;
 }
+
+void make_error_msg(char *func_name, char *msg)
+{
+    static char text[200];
+
+    memset(text, 0, sizeof(text));
+    strcpy(text, func_name);
+    strcpy(text, msg);
+    error(text);
+}
