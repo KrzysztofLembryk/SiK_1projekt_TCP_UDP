@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "err.h"
+#include "helper_func.h"
 
 
 // -----INIT FUNCTIONS-----
@@ -157,11 +158,7 @@ int cast_buff_to(void *ptr, size_t ptr_size, char *buff, size_t bytes_in_buff)
     // are real data that was sent.
     if (bytes_in_buff != ptr_size && buff[0] != DATA_ID)
     {
-        char msg[100];
-
-        strcpy(msg, __FUNCTION__);
-        strcpy(msg, "- recv package size not equal to given packet size");
-        error(msg);
+        make_error_msg(__FUNCTION__, " - recv package size not equal to given packet size");
 
         return -1;
     }

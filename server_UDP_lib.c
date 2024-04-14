@@ -8,7 +8,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-
 #include "common.h"
 #include "packet_structures.h"
 #include "helper_func.h"
@@ -22,12 +21,6 @@
 
 int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {
-    if (read_bytes < 0)
-    {
-        make_error_msg(__FUNCTION__, " - read_bytes < 0");
-
-        return -1;
-    }
     if (cast_buff_to(conn, sizeof(*conn), buff, (size_t)read_bytes) != SUCCESS)
         return -1;
 
@@ -36,13 +29,11 @@ int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
     if (conn->package_type_id != CONN_ID)
     {
         make_error_msg(__FUNCTION__, " - package type id is not CONN");
-
         return -1;
     }
     if (conn->protocol_id != UDP_PROTOCOL || conn->protocol_id != UDPR_PROTOCOL)
     {
         make_error_msg(__FUNCTION__, " - protocol is not udp or udpr");
-
         return -1;
     }
 
@@ -64,7 +55,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 
         struct sockaddr_in client_address;
         socklen_t client_address_len = (socklen_t)sizeof(client_address);
-        CONN conn;
+
         // UDP gets data as datagrams that are stored in queue, so after we do
         // recvfrom, we read whole datagram from queue, so if we dont have
         // enough space in buffor part of data is lost. Thus first we will read
@@ -72,18 +63,19 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         ssize_t read_bytes = recvfrom(socket_fd, buff, BUFFOR_SIZE,
                                       DEFAULT_FLAG,
                                       (struct sockaddr *)&client_address,
-                                      (socklen_t*)&client_address_len);
-
-        int ret_val = check_if_CONN(buff, read_bytes, &conn);
-
-        if (conn.package_type_id != CONN_ID)
+                                      (socklen_t *)&client_address_len);
+        if (read_bytes < 0)
         {
-            error("UDP_server_handler - received package is not CONN");
+            make_error_msg(__FUNCTION__, " - read_bytes < 0");
+            // SEND CONNRJCT or sth
             continue;
         }
-        if (conn.protocol_id == TCP_PROTOCOL)
+
+        CONN conn;
+
+        if (check_if_CONN(buff, read_bytes, &conn) != SUCCESS)
         {
-            error("UDP_server_handler - conn has TCP_PROTOCOL type not UDP");
+            // send CONNRJT
             continue;
         }
 
@@ -95,7 +87,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         case UDPR_PROTOCOL:
             break;
         default:
-            error("UDP_server_handler - unknown protocol type");
+            make_error_msg(__FUNCTION__, " - unknown protocol type")
             break;
         }
     }
