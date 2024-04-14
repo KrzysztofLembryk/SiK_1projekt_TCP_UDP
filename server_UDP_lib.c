@@ -24,11 +24,7 @@ int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {
     if (read_bytes < 0)
     {
-        char msg[100];
-
-        strcpy(msg, __FUNCTION__);
-        strcat(msg, " - read_bytes < 0");
-        error(msg);
+        make_error_msg(__FUNCTION__, " - read_bytes < 0");
 
         return -1;
     }
@@ -39,20 +35,13 @@ int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 
     if (conn->package_type_id != CONN_ID)
     {
-        char msg[100];
-
-        strcpy(msg, __FUNCTION__);
-        strcat(msg, " - package type id is not CONN");
-        error(msg);
+        make_error_msg(__FUNCTION__, " - package type id is not CONN");
 
         return -1;
     }
     if (conn->protocol_id != UDP_PROTOCOL || conn->protocol_id != UDPR_PROTOCOL)
     {
-        char msg[100];
-        strcpy(msg, __FUNCTION__);
-        strcat(msg, " - protocol is not UDP or UDPR");
-        error(msg);
+        make_error_msg(__FUNCTION__, " - protocol is not udp or udpr");
 
         return -1;
     }
