@@ -25,20 +25,43 @@ int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
         return -1;
 
     ntoh_CONN(conn);
+    print_CONN(conn);
 
     if (conn->package_type_id != CONN_ID)
     {
         make_error_msg(__FUNCTION__, " - package type id is not CONN");
         return -1;
     }
-    if (conn->protocol_id != UDP_PROTOCOL || conn->protocol_id != UDPR_PROTOCOL)
+    if (conn->protocol_id != UDP_PROTOCOL && conn->protocol_id != UDPR_PROTOCOL)
     {
-        make_error_msg(__FUNCTION__, " - protocol is not udp or udpr");
+        make_error_msg(__FUNCTION__, " - protocol is not udp nor udpr");
         return -1;
     }
 
-    print_CONN(conn);
+    return 0;
+}
 
+int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
+                 socklen_t client_address_len, uint64_t session_id)
+{
+    CONRJT conrjt;
+
+    init_CONRJT(&conrjt, session_id);
+
+    ssize_t sent_length = sendto(socket_fd, &conrjt, sizeof(conrjt),
+                                 DEFAULT_FLAG,
+                                 (struct sockaddr *)client_address,
+                                 client_address_len);
+    if (sent_length < 0)
+    {
+        make_error_msg(__FUNCTION__, " - sent len < 0");
+        return -1;
+    }
+    else if (sent_length != sizeof(conrjt))
+    {
+        make_error_msg(__FUNCTION__, " - sent_len not equal to size of data we wanted to send");
+        return -1;
+    }
     return 0;
 }
 
@@ -67,7 +90,6 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         if (read_bytes < 0)
         {
             make_error_msg(__FUNCTION__, " - read_bytes < 0");
-            // SEND CONNRJCT or sth
             continue;
         }
 
@@ -76,6 +98,8 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         if (check_if_CONN(buff, read_bytes, &conn) != SUCCESS)
         {
             // send CONNRJT
+            send_CONRJT(socket_fd, &client_address, client_address_len,
+                        conn.session_id);
             continue;
         }
 
@@ -87,7 +111,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         case UDPR_PROTOCOL:
             break;
         default:
-            make_error_msg(__FUNCTION__, " - unknown protocol type")
+            make_error_msg(__FUNCTION__, " - unknown protocol type");
             break;
         }
     }
