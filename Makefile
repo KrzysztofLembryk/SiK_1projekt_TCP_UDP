@@ -13,7 +13,6 @@ packet_structures.o my_vec.o
 client_TCP_lib.o: client_TCP_lib.c err.h common.h protconst.h \
  helper_func.h
 common.o: common.c err.h common.h
-data_handler_lib.o: data_handler_lib.c data_handler_lib.h my_vec.h
 err.o: err.c err.h
 helper_func.o: helper_func.c helper_func.h err.h
 my_vec.o: my_vec.c err.h my_vec.h

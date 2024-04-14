@@ -235,12 +235,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         }  
 
         ntoh_CONN(&conn);
-
-        printf("Ive got CONN PACKET:\n");
-        printf("package type id: %d\n", conn.package_type_id);
-        printf("session id: %" PRIu64 "\n", conn.session_id);
-        printf("protocol id: %d\n", conn.protocol_id);
-        printf("nbr of bytes to receive: %" PRIu64 "\n", conn.nbr_of_bytes_to_be_sent);
+        print_CONN(&conn);
 
         CONACC conacc;
         init_CONACC(&conacc, conn.session_id);
@@ -252,7 +247,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
             continue;
         }
 
-        // Since its static it will be initialised only once, not every time
+        // Since buff is static it will be initialised only once, not every time
         // that loop gets here
         static char buff[BUFFOR_SIZE];
         uint64_t total_nbr_of_bytes_to_be_sent = conn.nbr_of_bytes_to_be_sent;
