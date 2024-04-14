@@ -18,6 +18,7 @@
 #define BUFFOR_SIZE 65000
 #define DEFAULT_FLAG 0
 #define SUCCESS 0
+#define ERROR -1
 
 // - Function reads maximally BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
@@ -53,7 +54,7 @@ ssize_t read_data_to_buffer(int socket_fd, char *buff,
 int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {
     if (cast_buff_to(conn, sizeof(*conn), buff, (size_t)read_bytes) != SUCCESS)
-        return -1;
+        return ERROR;
 
     ntoh_CONN(conn);
     print_CONN(conn);
@@ -61,12 +62,12 @@ int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
     if (conn->package_type_id != CONN_ID)
     {
         make_error_msg(__FUNCTION__, " - package type id is not CONN");
-        return -1;
+        return ERROR;
     }
     if (conn->protocol_id != UDP_PROTOCOL && conn->protocol_id != UDPR_PROTOCOL)
     {
         make_error_msg(__FUNCTION__, " - protocol is not udp nor udpr");
-        return -1;
+        return ERROR;
     }
 
     return 0;
@@ -86,15 +87,15 @@ int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
     if (sent_length < 0)
     {
         make_error_msg(__FUNCTION__, " - sent len < 0");
-        return -1;
+        return ERROR;
     }
     else if (sent_length != sizeof(conrjt))
     {
         make_error_msg(__FUNCTION__, " - sent_len not equal to size of data we wanted to send");
-        return -1;
+        return ERROR;
     }
 
-    return 0;
+    return SUCCESS;
 }
 
 int send_CONACC(int socket_fd, struct sockaddr_in *client_address,
@@ -112,14 +113,14 @@ int send_CONACC(int socket_fd, struct sockaddr_in *client_address,
     if (sent_length < 0)
     {
         make_error_msg(__FUNCTION__, " - sent len < 0");
-        return -1;
+        return ERROR;
     }
     else if (sent_length != sizeof(conacc))
     {
         make_error_msg(__FUNCTION__, " - sent_len not equal to size of data we wanted to send");
-        return -1;
+        return ERROR;
     }
-    return 0;
+    return SUCCESS;
 }
 
 int check_if_correct_DATA_packet(char *buff,
@@ -128,8 +129,8 @@ int check_if_correct_DATA_packet(char *buff,
                                  DATA_INFO_t *d_info,
                                  uint64_t curr_package_id)
 {
-    if (cast_buff_to(d_info, sizeof(*d_info), buff, (size_t)read_bytes))
-        return -1;
+    if (cast_buff_to(d_info, sizeof(*d_info), buff, (size_t)read_bytes) != SUCCESS)
+        return ERROR;
 
     ntoh_DATA_INFO(d_info);
     print_DATA_INFO(d_info);
@@ -137,18 +138,20 @@ int check_if_correct_DATA_packet(char *buff,
     if (d_info->package_type_id != DATA_ID)
     {
         make_error_msg(__FUNCTION__, " - received pacakge_type is not DATA");
-        return -1;
+        return ERROR;
     }
     if (d_info->session_id != conn->session_id)
     {
         make_error_msg(__FUNCTION__, " - received DATA package has wrong session id");
-        return -1;
+        return ERROR;
     }
     if (d_info->package_id != curr_package_id)
     {
         make_error_msg(__FUNC__, " - received DATA package has wrong package id");
-        return -1;
+        return ERROR;
     }
+
+    return SUCCESS;
 }
 
 int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
