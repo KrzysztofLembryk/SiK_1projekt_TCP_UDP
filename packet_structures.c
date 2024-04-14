@@ -94,7 +94,7 @@ void print_CONRJT(CONRJT *conrjt)
     printf("session id: %" PRIu64 "\n", conrjt->session_id);
 }
 
-void print_DATA(DATA *data)
+void print_DATA_INFO(DATA *data)
 {
     printf("[DATA package]:\n");
     printf("package type: %d\n", data->package_type_id);

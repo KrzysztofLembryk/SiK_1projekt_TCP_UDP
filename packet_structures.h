@@ -113,7 +113,7 @@ void print_CONACC(CONACC *conacc);
 
 void print_CONRJT(CONRJT *conrjt);
 
-void print_DATA(DATA *data);
+void print_DATA_INFO(DATA *data);
 
 void print_ACC(ACC *acc);
 

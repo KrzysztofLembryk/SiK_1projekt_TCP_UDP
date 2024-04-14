@@ -93,6 +93,7 @@ int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
         make_error_msg(__FUNCTION__, " - sent_len not equal to size of data we wanted to send");
         return -1;
     }
+
     return 0;
 }
 
@@ -121,11 +122,62 @@ int send_CONACC(int socket_fd, struct sockaddr_in *client_address,
     return 0;
 }
 
-void UDP_data_receive_handler(int socket_fd, )
+int check_if_correct_DATA_packet(char *buff,
+                                 ssize_t read_bytes,
+                                 CONN *conn,
+                                 DATA_INFO_t *d_info,
+                                 uint64_t curr_package_id)
 {
+    if (cast_buff_to(d_info, sizeof(*d_info), buff, (size_t)read_bytes))
+        return -1;
+
+    ntoh_DATA_INFO(d_info);
+    print_DATA_INFO(d_info);
+
+    if (d_info->package_type_id != DATA_ID)
+    {
+        make_error_msg(__FUNCTION__, " - received pacakge_type is not DATA");
+        return -1;
+    }
+    if (d_info->session_id != conn->session_id)
+    {
+        make_error_msg(__FUNCTION__, " - received DATA package has wrong session id");
+        return -1;
+    }
+    if (d_info->package_id != curr_package_id)
+    {
+        make_error_msg(__FUNC__, " - received DATA package has wrong package id");
+        return -1;
+    }
 }
 
-void UPDR_data_receive_handler()
+int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
+{
+    const uint64_t bytes_to_receive = conn->nbr_of_bytes_to_be_sent;
+    uint64_t bytes_recvd = 0;
+    uint64_t curr_package_id = 0;
+    static struct sockaddr_in client_address;
+    static socklen_t client_address_len = (socklen_t)sizeof(client_address);
+
+    while (bytes_recvd < bytes_to_receive)
+    {
+        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff,
+                                                 &client_address,
+                                                 &client_address_len);
+
+        if (read_bytes <= 0)
+            continue;
+
+        DATA_INFO_t data_info;
+
+        if (check_if_correct_DATA_packet(buff, read_bytes, conn,
+                                &data_info, curr_package_id) != SUCCESS)
+        {
+        }
+    }
+}
+
+void UPDR_data_receive()
 {
 }
 
@@ -141,7 +193,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         struct sockaddr_in client_address;
         socklen_t client_address_len = (socklen_t)sizeof(client_address);
         ssize_t read_bytes = read_data_to_buffer(socket_fd, buff,
-                                                 &client_address, 
+                                                 &client_address,
                                                  &client_address_len);
         if (read_bytes <= 0)
             continue;
