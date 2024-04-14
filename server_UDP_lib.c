@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
 
 #include "common.h"
 #include "packet_structures.h"
@@ -20,6 +21,7 @@
 #define SUCCESS 0
 #define ERROR -1
 #define WRONG_SESSION_ID -2
+#define TIMEOUT_ERROR -3
 
 // - Function reads maximally BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
@@ -41,7 +43,11 @@ ssize_t read_data_to_buffer(int socket_fd, char *buff,
                                   (socklen_t *)client_address_len);
     if (read_bytes < 0)
     {
-        make_error_msg(__FUNCTION__, " - read_bytes < 0");
+        if (errno == EAGAIN) 
+            make_error_msg(__FUNCTION__, " - timeout\n"); 
+        else 
+            make_error_msg(__FUNCTION__, " - read_bytes < 0");
+
         return ERROR;
     }
     if (read_bytes == 0)
@@ -180,6 +186,7 @@ int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
         DATA_INFO_t data_info;
         int ret_val = check_if_correct_DATA_packet(buff, read_bytes, conn,
                                 &data_info, curr_package_id);
+
         if (ret_val == WRONG_SESSION_ID) 
         {
             // This means that somebody else sent us some data since it has 
