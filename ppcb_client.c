@@ -10,6 +10,7 @@
 #include "protconst.h"
 #include "helper_func.h"
 #include "client_TCP_lib.h"
+#include "client_UDP_lib.h"
 
 my_vec_t *read_stdin()
 {
@@ -51,11 +52,9 @@ int main(int argc, char *argv[])
     {
         case TCP:
             TCP_client_handler(socket_fd, &server_address, vec, session_id);
-            close(socket_fd);
-            my_vec_destruct(vec);
             break; 
         case UDP:
-
+            UDP_client_handler(socket_fd, &server_address, vec, session_id);
             break;
         case UDPR:
 
@@ -63,6 +62,9 @@ int main(int argc, char *argv[])
         default:
             break;
     }
+
+    close(socket_fd);
+    my_vec_destruct(vec);
 
     return 0;
 }

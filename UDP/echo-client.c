@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
         // {
         //     fatal("parameters must be less than %zu characters long", (size_t)BUFFER_SIZE);
         // }
-        int message = 
+        // int message = 
 
         int send_flags = 0;
         socklen_t address_length = (socklen_t)sizeof(server_address);

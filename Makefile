@@ -5,24 +5,28 @@ TARGETS = ppcb_client server
 all: $(TARGETS)
 
 server: server.o err.o common.o helper_func.o server_TCP_lib.o \
-packet_structures.o
+packet_structures.o server_UDP_lib.o
 
 ppcb_client: ppcb_client.o err.o common.o helper_func.o client_TCP_lib.o \
-packet_structures.o my_vec.o
+packet_structures.o my_vec.o client_UDP_lib.o
 
 client_TCP_lib.o: client_TCP_lib.c err.h common.h protconst.h \
- helper_func.h
+ helper_func.h client_TCP_lib.h packet_structures.h my_vec.h
+client_UDP_lib.o: client_UDP_lib.c client_UDP_lib.h my_vec.h \
+ packet_structures.h common.h err.h
 common.o: common.c err.h common.h
 err.o: err.c err.h
 helper_func.o: helper_func.c helper_func.h err.h
 my_vec.o: my_vec.c err.h my_vec.h
 packet_structures.o: packet_structures.c packet_structures.h err.h
 ppcb_client.o: ppcb_client.c err.h common.h protconst.h helper_func.h \
- client_TCP_lib.h packet_structures.h my_vec.h
+ client_TCP_lib.h packet_structures.h my_vec.h client_UDP_lib.h
 server.o: server.c err.h common.h helper_func.h protconst.h \
- server_TCP_lib.h packet_structures.h
+ server_TCP_lib.h packet_structures.h server_UDP_lib.h
 server_TCP_lib.o: server_TCP_lib.c err.h common.h protconst.h \
  helper_func.h server_TCP_lib.h packet_structures.h
+server_UDP_lib.o: server_UDP_lib.c common.h packet_structures.h \
+ helper_func.h err.h
 
 clean:
 	rm -f $(TARGETS) *.o

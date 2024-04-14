@@ -4,6 +4,10 @@
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 
 #include "common.h"
 #include "packet_structures.h"
@@ -24,7 +28,7 @@ int check_if_CONN(char *buff, int buff_size, ssize_t read_bytes, CONN *conn)
     }
     if (read_bytes != sizeof(CONN))
     {
-        printf("sizeof CONN: %d\n", sizeof(CONN));
+        printf("sizeof CONN: %ld\n", sizeof(CONN));
         error("UDP_wait_for_CONN - recv package size not equal to CONN size");
         return -1;
     }
@@ -68,8 +72,8 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         // whole datagram into buffer, then cast it on our structures i.e. CONN.
         ssize_t read_bytes = recvfrom(socket_fd, buff, BUFFOR_SIZE,
                                       DEFAULT_FLAG,
-                                      (struct sockaddr *)client_address,
-                                      client_address_len);
+                                      (struct sockaddr *)&client_address,
+                                      (socklen_t*)&client_address_len);
 
         int ret_val = check_if_CONN(buff, BUFFOR_SIZE, read_bytes,
                                                &conn);
