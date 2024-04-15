@@ -58,7 +58,7 @@ ssize_t read_data_to_buffer(int socket_fd, char *buff,
     return read_bytes;
 }
 
-int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
+int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {
     if (cast_buff_to(conn, sizeof(*conn), buff, (size_t)read_bytes) != SUCCESS)
         return ERROR;
@@ -82,7 +82,7 @@ int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 
 int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
                 socklen_t *client_address_len, uint64_t session_id, 
-                void *data, size_t data_size, char *function_name)
+                void *data, size_t data_size, const char *function_name)
 {
     ssize_t sent_length = sendto(socket_fd, data, data_size,
                                  DEFAULT_FLAG,
@@ -120,16 +120,6 @@ int send_CONACC(int socket_fd, struct sockaddr_in *client_address,
     init_CONACC(&conacc, session_id);
 
     return sendto_wrapper(socket_fd, client_address, client_address_len, session_id, &conacc, sizeof(conacc), __FUNCTION__);
-}
-
-int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
-                socklen_t *client_address_len, uint64_t session_id)
-{
-    CONRJT conrjt;
-
-    init_CONRJT(&conrjt, session_id);
-
-    return sendto_wrapper(socket_fd, client_address, client_address_len, session_id, &conrjt, sizeof(conrjt), __FUNCTION__);
 }
 
 int send_RJT(int socket_fd, struct sockaddr_in *client_address,
@@ -172,7 +162,7 @@ int check_if_correct_DATA_packet(char *buff,
     }
     if (read_bytes - sizeof(*d_info) - d_info->nbr_of_bytes_in_packet != 0)
     {
-        make_error_msg(__FUNCTION__, " - nbr of received bytes from client is not equal to decalred nbr of bytes in DATA_INFO header");
+        make_error_msg(__FUNCTION__, " - nbr of received bytes from client is not equal to declared nbr of bytes in DATA_INFO header");
         return ERROR;
     }
 
@@ -210,7 +200,6 @@ int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
             // wrong session id (We assume that session id is unique), thus we
             // dont want to stop receiving data from our client so we wait for
             // another package, and send CONRJT to client who sent wrong one.
-            // send CONRJT
             send_CONRJT(socket_fd, &client_address, &client_address_len,
                         conn->session_id);
             continue;
@@ -218,7 +207,6 @@ int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
         else if (ret_val == ERROR)
         {
             // Our client sent package with wrong data so we end connection
-            // send RJT
             send_RJT(socket_fd, &client_address, &client_address_len,
                     conn->session_id, data_info.package_id);
             break;
@@ -254,7 +242,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 
         CONN conn;
 
-        if (check_if_CONN(buff, read_bytes, &conn) != SUCCESS)
+        if (check_if_correct_CONN(buff, read_bytes, &conn) != SUCCESS)
         {
             send_CONRJT(socket_fd, &client_address, &client_address_len,
                         conn.session_id);
