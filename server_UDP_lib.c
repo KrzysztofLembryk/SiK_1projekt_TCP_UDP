@@ -41,6 +41,8 @@ ssize_t read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
                                   DEFAULT_FLAG,
                                   (struct sockaddr *)client_address,
                                   (socklen_t *)client_address_len);
+
+    printf("READ BYTES: %zu\n", (size_t)read_bytes);
     if (read_bytes < 0)
     {
         if (errno == EAGAIN) 
@@ -77,7 +79,7 @@ int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
         return ERROR;
     }
 
-    return 0;
+    return SUCCESS;
 }
 
 int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
@@ -104,35 +106,43 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
 int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
                 socklen_t client_address_len, uint64_t session_id)
 {
+    printf("Sending CONRJT\n");
     CONRJT conrjt;
 
     init_CONRJT(&conrjt, session_id);
 
-    return sendto_wrapper(socket_fd, client_address, client_address_len, 
+    int ret_val = sendto_wrapper(socket_fd, client_address, client_address_len, 
      &conrjt, sizeof(conrjt), __FUNCTION__);
+
+    return ret_val;
 }
 
 int send_CONACC(int socket_fd, struct sockaddr_in *client_address,
                 socklen_t client_address_len, uint64_t session_id)
 {
-
+    printf("Sending CONACC\n");
     CONACC conacc;
 
     init_CONACC(&conacc, session_id);
 
-    return sendto_wrapper(socket_fd, client_address, client_address_len, 
+    int ret_val = sendto_wrapper(socket_fd, client_address, client_address_len, 
     &conacc, sizeof(conacc), __FUNCTION__);
+
+    return ret_val;
 }
 
 int send_RJT(int socket_fd, struct sockaddr_in *client_address,
              socklen_t client_address_len, uint64_t session_id,
              uint64_t package_id)
 {
+    printf("Sending RJT\n");
     RJT rjt;
 
     init_RJT(&rjt, session_id, package_id);
 
-    return sendto_wrapper(socket_fd, client_address, client_address_len, &rjt, sizeof(rjt), __FUNCTION__);
+    int ret_val =  sendto_wrapper(socket_fd, client_address, client_address_len, &rjt, sizeof(rjt), __FUNCTION__);
+
+    return ret_val;
 }
 
 int check_if_correct_DATA_packet(char *buff,
@@ -145,6 +155,7 @@ int check_if_correct_DATA_packet(char *buff,
         return ERROR;
 
     ntoh_DATA_INFO(d_info);
+    printf("Printing info about received data:\n");
     print_DATA_INFO(d_info);
 
     if (d_info->session_id != conn->session_id)
@@ -164,6 +175,9 @@ int check_if_correct_DATA_packet(char *buff,
     }
     if (read_bytes - sizeof(*d_info) - d_info->nbr_of_bytes_in_packet != 0)
     {
+        printf("Read bytes: %zu\n", (size_t)read_bytes);
+        printf("sizeof dinfo: %zu\n", sizeof(*d_info));
+        printf("nbr of bytes in data: %" PRIu32 "\n", d_info->nbr_of_bytes_in_packet);
         make_error_msg(__FUNCTION__, " - nbr of received bytes from client is not equal to declared nbr of bytes in DATA_INFO header");
         return ERROR;
     }
@@ -181,6 +195,7 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn)
 
     while (bytes_recvd < bytes_to_receive)
     {
+        printf("waiting for packet [%lu]\n", curr_package_id);
         ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, BUFFOR_SIZE,
                                                  &client_address,
                                                  &client_address_len);
@@ -260,6 +275,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         switch (conn.protocol_id)
         {
         case UDP_PROTOCOL:
+            printf("Will be receiving data from client\n");
             UDP_data_receive(socket_fd, buff, &conn);
             /* code */
             break;
