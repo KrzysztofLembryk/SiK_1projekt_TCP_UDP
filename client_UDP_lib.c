@@ -134,6 +134,23 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         return;
     }
 
-    UDP_client_send_DATA(socket_fd, vec, session_id);    
+    if (UDP_client_send_DATA(socket_fd, vec, session_id) != SUCCES)
+        return;
+    
+    // Now we wait for rcvd
+    received_length = wait_for_server_response(socket_fd, response_buffer);
 
+    if (received_length != SUCCESS)
+    {
+        syserr("recvfrom");
+    }
+
+    RCVD rcvd;
+    cast_buff_to(&rcvd, sizeof(rcvd), response_buffer, (size_t)received_length);
+
+    if (rcvd.package_type_id != RCVD_ID)
+    {
+        make_error_msg(__FUNCTION__, " - rcvd package type id is not RCVD");
+        return;
+    }
 }
