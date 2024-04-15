@@ -15,15 +15,6 @@
 #include "helper_func.h"
 #include "err.h"
 
-// Buffor is 65000 since we need space for 64kB of data and also for packages
-// headers
-// #define RECEIVE_BUFFOR_SIZE 65000
-// #define DEFAULT_FLAG 0
-// #define SUCCESS 0
-// #define ERROR -1
-// #define WRONG_SESSION_ID -2
-// #define TIMEOUT_ERROR -3
-
 // - Function reads maximally RECEIVE_BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
 // - If recvfrom read <= 0 bytes func returns -1, otherwise nbr of bytes read
@@ -61,6 +52,27 @@ ssize_t read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
     return read_bytes;
 }
 
+int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
+                socklen_t client_address_len,  
+                void *data, size_t data_size, const char *function_name)
+{
+    ssize_t sent_length = sendto(socket_fd, data, data_size,
+                                 DEFAULT_FLAG,
+                                 (struct sockaddr *)client_address,
+                                 client_address_len);
+    if (sent_length < 0)
+    {
+        make_error_msg(function_name, " - sent len < 0");
+        return ERROR;
+    }
+    else if ((size_t)sent_length != data_size)
+    {
+        make_error_msg(function_name, " - sent_len not equal to size of data we wanted to send");
+        return ERROR;
+    }
+    return SUCCESS;
+}
+
 int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {
     if (cast_buff_to(conn, sizeof(*conn), buff, (size_t)read_bytes) != SUCCESS)
@@ -83,26 +95,6 @@ int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
     return SUCCESS;
 }
 
-int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
-                socklen_t client_address_len,  
-                void *data, size_t data_size, const char *function_name)
-{
-    ssize_t sent_length = sendto(socket_fd, data, data_size,
-                                 DEFAULT_FLAG,
-                                 (struct sockaddr *)client_address,
-                                 client_address_len);
-    if (sent_length < 0)
-    {
-        make_error_msg(function_name, " - sent len < 0");
-        return ERROR;
-    }
-    else if ((size_t)sent_length != data_size)
-    {
-        make_error_msg(function_name, " - sent_len not equal to size of data we wanted to send");
-        return ERROR;
-    }
-    return SUCCESS;
-}
 
 int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
                 socklen_t client_address_len, uint64_t session_id)
@@ -289,6 +281,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
             continue;
         }
 
+        sleep(11);
         if (send_CONACC(socket_fd, &client_address, client_address_len,
                         conn.session_id) != SUCCESS)
         {
@@ -297,16 +290,16 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 
         switch (conn.protocol_id)
         {
-        case UDP_PROTOCOL:
-            printf("Will be receiving data from client\n");
-            UDP_data_receive(socket_fd, buff, &conn);
-            /* code */
-            break;
-        case UDPR_PROTOCOL:
-            break;
-        default:
-            make_error_msg(__FUNCTION__, " - unknown protocol type");
-            break;
+            case UDP_PROTOCOL:
+                printf("Will be receiving data from client\n");
+                UDP_data_receive(socket_fd, buff, &conn);
+                /* code */
+                break;
+            case UDPR_PROTOCOL:
+                break;
+            default:
+                make_error_msg(__FUNCTION__, " - unknown protocol type");
+                break;
         }
        
     }

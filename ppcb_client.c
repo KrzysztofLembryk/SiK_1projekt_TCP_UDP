@@ -41,6 +41,11 @@ int main(int argc, char *argv[])
     int socket_fd;
     init_socket_fd(&socket_fd, type_of_comm);
 
+    // we set timeout for our socket, since server might never respond, so after
+    // MAX_WAIT seconds we will return error
+    struct timeval time_o = {.tv_sec = MAX_WAIT, .tv_usec = 0};
+    setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &time_o, sizeof time_o);
+
     // We read stdin so late since before reading it errors might occur 
     // regarding creating socket/checking comm type etc. So we would need to 
     // deallocate our vector after each error, but now since we read input at
@@ -54,10 +59,10 @@ int main(int argc, char *argv[])
             TCP_client_handler(socket_fd, &server_address, vec, session_id);
             break; 
         case UDP:
-            UDP_client_handler(socket_fd, &server_address, vec, session_id);
+            UDP_client_handler(socket_fd, &server_address, vec, session_id, type_of_comm);
             break;
         case UDPR:
-
+            UDP_client_handler(socket_fd, &server_address, vec, session_id, type_of_comm);
             break;
         default:
             break;

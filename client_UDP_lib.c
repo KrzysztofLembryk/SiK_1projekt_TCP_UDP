@@ -1,11 +1,13 @@
 #include <sys/socket.h>
 #include <endian.h>
+#include <errno.h>
 #include "client_UDP_lib.h"
 #include "packet_structures.h"
 #include "common.h"
 #include "err.h"
 #include "helper_func.h"
 #include "constants.h"
+#include <unistd.h>
 
 #define RESPONSE_BUFF_SIZE 200
 
@@ -44,8 +46,16 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
 
     if (received_length < 0)
     {
-       make_error_msg(__FUNCTION__, " - recvfrom < 0"); 
-       return ERROR;
+        if (errno == EAGAIN)
+        {
+            make_error_msg(__FUNCTION__, " - timeout");
+            return TIMEOUT_ERROR;
+        }
+        else
+        {
+            make_error_msg(__FUNCTION__, " - recvfrom < 0"); 
+            return ERROR;
+        }
     }
     return received_length;
 }
@@ -104,6 +114,12 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
+int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
+                socklen_t server_address_len, my_vec_t *vec, uint64_t session_id)
+{
+    return SUCCESS;
+}
+
 void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, communication_type comm_type)
 {
     CONN conn;
@@ -119,13 +135,15 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 
     // Now we wait for server response - whether conacc or conrjt
     static char response_buffer[RESPONSE_BUFF_SIZE];
-
     ssize_t received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
 
     if (received_length == ERROR)
     {
         return;
     }
+    else if (received_length == TIMEOUT_ERROR)
+        return;
+    
     printf("Got response, now casting it\n");
 
     CONACC conacc;
@@ -142,16 +160,16 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     printf("Sending data\n");
     switch (comm_type)
     {
-    case UDP:
-        if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
-        {
-            return;
-        }
-        break;
-    case UDPR:
-        break; 
-    default:
-        break;
+        case UDP:
+            if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
+            {
+                return;
+            }
+            break;
+        case UDPR:
+            break; 
+        default:
+            break;
     }
     
     // Now we wait for rcvd
@@ -162,6 +180,8 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     {
         return;
     }
+    else if (received_length == TIMEOUT_ERROR)
+        return;
 
     RCVD rcvd;
     cast_buff_to(&rcvd, sizeof(rcvd), response_buffer, (size_t)received_length);
