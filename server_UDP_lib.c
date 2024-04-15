@@ -145,6 +145,19 @@ int send_RJT(int socket_fd, struct sockaddr_in *client_address,
     return ret_val;
 }
 
+int send_RCVD(int socket_fd, struct sockaddr_in *client_address,
+             socklen_t client_address_len, uint64_t session_id)
+{
+    printf("Sending RCVD\n");
+    RCVD rcvd;
+
+    init_RCVD(&rcvd, session_id);
+
+    int ret_val =  sendto_wrapper(socket_fd, client_address, client_address_len, &rcvd, sizeof(rcvd), __FUNCTION__);
+
+    return ret_val;
+}
+
 int check_if_correct_DATA_packet(char *buff,
                                  ssize_t read_bytes,
                                  CONN *conn,
@@ -232,8 +245,13 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn)
         curr_package_id++;
         bytes_recvd += data_info.nbr_of_bytes_in_packet;
 
-        print_data_to_stdout(buff + sizeof(data_info), curr_package_id, data_info.nbr_of_bytes_in_packet);
+        print_data_to_stdout(buff + sizeof(data_info), data_info.package_id, data_info.nbr_of_bytes_in_packet);
+
+        printf("bytes recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
     }
+
+    if (bytes_recvd == bytes_to_receive)
+        send_RCVD(socket_fd, &client_address, client_address_len, conn->session_id);
 }
 
 void UPDR_data_receive()
