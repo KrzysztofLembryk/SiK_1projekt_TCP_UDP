@@ -250,8 +250,12 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn)
         printf("bytes recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
     }
 
+    // if bytes_recvd == bytes_to_receive this means that we've got all declared
+    // data and thus we need to send rcvd msg
     if (bytes_recvd == bytes_to_receive)
         send_RCVD(socket_fd, &client_address, client_address_len, conn->session_id);
+    else
+        send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
 }
 
 void UPDR_data_receive()
