@@ -80,54 +80,67 @@ int check_if_CONN(char *buff, ssize_t read_bytes, CONN *conn)
     return 0;
 }
 
-int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
-                socklen_t client_address_len, uint64_t session_id)
+int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
+                socklen_t *client_address_len, uint64_t session_id, 
+                void *data, size_t data_size, char *function_name)
 {
-    CONRJT conrjt;
-
-    init_CONRJT(&conrjt, session_id);
-
-    ssize_t sent_length = sendto(socket_fd, &conrjt, sizeof(conrjt),
+    ssize_t sent_length = sendto(socket_fd, data, data_size,
                                  DEFAULT_FLAG,
                                  (struct sockaddr *)client_address,
                                  client_address_len);
     if (sent_length < 0)
     {
-        make_error_msg(__FUNCTION__, " - sent len < 0");
+        make_error_msg(function_name, " - sent len < 0");
         return ERROR;
     }
-    else if (sent_length != sizeof(conrjt))
+    else if (sent_length != data_size)
     {
-        make_error_msg(__FUNCTION__, " - sent_len not equal to size of data we wanted to send");
+        make_error_msg(function_name, " - sent_len not equal to size of data we wanted to send");
         return ERROR;
     }
-
     return SUCCESS;
 }
 
+int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
+                socklen_t *client_address_len, uint64_t session_id)
+{
+    CONRJT conrjt;
+
+    init_CONRJT(&conrjt, session_id);
+
+    return sendto_wrapper(socket_fd, client_address, client_address_len, session_id, &conrjt, sizeof(conrjt), __FUNCTION__);
+}
+
 int send_CONACC(int socket_fd, struct sockaddr_in *client_address,
-                socklen_t client_address_len, uint64_t session_id)
+                socklen_t *client_address_len, uint64_t session_id)
 {
 
     CONACC conacc;
 
     init_CONACC(&conacc, session_id);
 
-    ssize_t sent_length = sendto(socket_fd, &conacc, sizeof(conacc),
-                                 DEFAULT_FLAG,
-                                 (struct sockaddr *)client_address,
-                                 client_address_len);
-    if (sent_length < 0)
-    {
-        make_error_msg(__FUNCTION__, " - sent len < 0");
-        return ERROR;
-    }
-    else if (sent_length != sizeof(conacc))
-    {
-        make_error_msg(__FUNCTION__, " - sent_len not equal to size of data we wanted to send");
-        return ERROR;
-    }
-    return SUCCESS;
+    return sendto_wrapper(socket_fd, client_address, client_address_len, session_id, &conacc, sizeof(conacc), __FUNCTION__);
+}
+
+int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
+                socklen_t *client_address_len, uint64_t session_id)
+{
+    CONRJT conrjt;
+
+    init_CONRJT(&conrjt, session_id);
+
+    return sendto_wrapper(socket_fd, client_address, client_address_len, session_id, &conrjt, sizeof(conrjt), __FUNCTION__);
+}
+
+int send_RJT(int socket_fd, struct sockaddr_in *client_address,
+             socklen_t *client_address_len, uint64_t session_id,
+             uint64_t package_id)
+{
+    RJT rjt;
+
+    init_RJT(&rjt, session_id, package_id);
+
+    return sendto_wrapper(socket_fd, client_address, client_address_len, session_id, &rjt, sizeof(rjt), __FUNCTION__);
 }
 
 int check_if_correct_DATA_packet(char *buff,
@@ -181,7 +194,11 @@ int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
                                                  &client_address_len);
 
         if (read_bytes <= 0)
-            continue;
+        {
+            // If read bytes <= 0 we end connection since we have some error
+            // it could be timeout
+            break;
+        }
 
         DATA_INFO_t data_info;
         int ret_val = check_if_correct_DATA_packet(buff, read_bytes, conn,
@@ -194,12 +211,16 @@ int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
             // dont want to stop receiving data from our client so we wait for
             // another package, and send CONRJT to client who sent wrong one.
             // send CONRJT
+            send_CONRJT(socket_fd, &client_address, &client_address_len,
+                        conn->session_id);
             continue;
         }
         else if (ret_val == ERROR)
         {
             // Our client sent package with wrong data so we end connection
             // send RJT
+            send_RJT(socket_fd, &client_address, &client_address_len,
+                    conn->session_id, data_info.package_id);
             break;
         }
 
@@ -235,12 +256,12 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 
         if (check_if_CONN(buff, read_bytes, &conn) != SUCCESS)
         {
-            send_CONRJT(socket_fd, &client_address, client_address_len,
+            send_CONRJT(socket_fd, &client_address, &client_address_len,
                         conn.session_id);
             continue;
         }
 
-        if (send_CONACC(socket_fd, &client_address, client_address_len,
+        if (send_CONACC(socket_fd, &client_address, &client_address_len,
                         conn.session_id) != SUCCESS)
         {
             continue;
@@ -249,6 +270,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         switch (conn.protocol_id)
         {
         case UDP_PROTOCOL:
+            UDP_data_receive(socket_fd, buff, &conn);
             /* code */
             break;
         case UDPR_PROTOCOL:
