@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include "err.h"
 #include "helper_func.h"
-#include "constants.h"
 
 
 // -----INIT FUNCTIONS-----
@@ -42,12 +41,12 @@ int init_DATA(DATA *data, uint64_t session_id, uint64_t package_id,
     if (nbr_of_bytes > SEND_BUFF_SIZE)
     {
         error("init_DATA - given nbr of bytes is greater than BUFF SIZE!\n");
-        return -1;
+        return ERROR;
     }
 
     strncpy(data->seq_of_bytes, bytes_to_send, nbr_of_bytes);
 
-    return 0;
+    return SUCCESS;
 }
 
 int init_DATA_INFO(DATA_INFO_t *data_info, uint64_t session_id, 
@@ -61,9 +60,9 @@ int init_DATA_INFO(DATA_INFO_t *data_info, uint64_t session_id,
     if (nbr_of_bytes > SEND_BUFF_SIZE)
     {
         error("init_DATA - given nbr of bytes is greater than BUFF SIZE!\n");
-        return -1;
+        return ERROR;
     }
-    return 0;
+    return SUCCESS;
 }
 
 void init_ACC(ACC *acc, uint64_t session_id, uint64_t package_id)
@@ -177,10 +176,10 @@ int cast_buff_to(void *struct_ptr, size_t struct_size, char *buff, size_t bytes_
     {
         make_error_msg(__FUNCTION__, " - recv package size not equal to given packet size");
 
-        return -1;
+        return ERROR;
     }
 
     memcpy(struct_ptr, buff, struct_size);
 
-    return 0;
+    return SUCCESS;
 }

@@ -51,7 +51,7 @@ int TCP_conn_init_helper(CONN *conn, int client_fd)
     ssize_t read_length = readn(client_fd, conn, sizeof (*conn));
 
     if (readn_error_handler(read_length, sizeof (*conn)) != 0)
-        return -1;
+        return ERROR;
 
     if (conn->package_type_id != CONN_ID)
     {
@@ -63,7 +63,7 @@ int TCP_conn_init_helper(CONN *conn, int client_fd)
         error("Wrong protocol");
         return -2;
     }
-    return 0;
+    return SUCCESS;
 }
 
 int TCP_handle_conn_init(CONN *conn, int client_fd)
@@ -79,17 +79,17 @@ int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
     if (written_length < 0 )
     {
         error("TCP-send_CONACC-writen returned < 0\n");
-        return -1;
+        return ERROR;
     }
     if ((size_t) written_length < sizeof (*conacc)) 
     {
         error("TCP-send_CONACC_to_client-writen-wrote less than wanted size\n");
-        return -1;
+        return ERROR;
     }
     else 
     {
         printf("CONACC reply sent\n");
-        return 0;
+        return SUCCESS;
     }
 }
 
@@ -110,19 +110,19 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
                                                     sizeof (*data_metainfo));
 
     if (readn_error_handler(read_length, sizeof (*data_metainfo)) != 0)
-        return -1;
+        return ERROR;
 
     ntoh_DATA_INFO(data_metainfo);
 
     if(data_metainfo->package_type_id != DATA_ID)
     {
         error("TCP_get_DATA_metainfo-wrong package type id\n");
-        return -1;
+        return ERROR;
     }
     if (data_metainfo->session_id != session_id)
     {
         error("TCP_get_DATA_metainfo-wrong session id\n");
-        return -1;
+        return ERROR;
     }
     if (*first_packet)
     {
@@ -131,16 +131,16 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
         if (data_metainfo->package_id != prev_packet_id)
         {
             error("TCP_get_DATA_metainfo-wrong first packet doesnt have package id = 0\n");
-            return -1;
+            return ERROR;
         }
     }
     else if (data_metainfo->package_id != prev_packet_id + 1)
     {
         error("TCP_get_DATA_metainfo-wrong not consecutive packet id\n");
-        return -1; 
+        return ERROR; 
     }
 
-    return 0;
+    return SUCCESS;
 }
 
 int TCP_send_RJT(int client_fd, RJT *rjt)
@@ -149,17 +149,17 @@ int TCP_send_RJT(int client_fd, RJT *rjt)
     if (written_length < 0 )
     {
         error("TCP-send_RJT-writen returned < 0\n");
-        return -1;
+        return ERROR;
     }
     if ((size_t) written_length < sizeof (*rjt)) 
     {
         error("TCP-send_RJT_to_client-writen-wrote less than wanted size\n");
-        return -1;
+        return ERROR;
     }
     else 
     {
         printf("RJT reply sent\n");
-        return 0;
+        return SUCCESS;
     }
 }
 
@@ -169,17 +169,17 @@ int TCP_send_RCVD(int client_fd, RCVD *rcvd)
     if (written_length < 0 )
     {
         error("TCP-send_RCVD-writen returned < 0\n");
-        return -1;
+        return ERROR;
     }
     if ((size_t) written_length < sizeof (*rcvd)) 
     {
         error("TCP-send_RCVD_to_client-writen-wrote less than wanted size\n");
-        return -1;
+        return ERROR;
     }
     else 
     {
         printf("RCVD reply sent\n");
-        return 0;
+        return SUCCESS;
     }
 }
 

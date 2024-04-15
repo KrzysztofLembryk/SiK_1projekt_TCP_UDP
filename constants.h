@@ -33,7 +33,6 @@
 #define WRONG_SESSION_ID -2
 #define TIMEOUT_ERROR -3
 
-
 // -----SOCKET COMMUNICATION FLAGS-----
 
 #define DEFAULT_FLAG 0

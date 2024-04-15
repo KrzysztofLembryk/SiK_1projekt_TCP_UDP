@@ -4,6 +4,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include "constants.h"
 
 communication_type check_communication_type(const char* input)
 {
@@ -46,26 +47,26 @@ int readn_error_handler(ssize_t read_length, size_t data_size)
         if (errno == EAGAIN) 
         {
             error("readn - timeout\n"); 
-            return -1;
+            return ERROR;
         } 
         else 
         {
             error("readn");
-            return -1;
+            return ERROR;
         }
     }
     else if (read_length == 0) 
     {
         error("readn - connection closed read_len == 0\n");
-        return -1;
+        return ERROR;
     }
     else if ((size_t) read_length < data_size) 
     {
         error("readn - connection closed without providing full data structure\n");
-        return -1;
+        return ERROR;
     }
 
-    return 0;
+    return SUCCESS;
 }
 
 void make_error_msg(const char *func_name, const char *msg)

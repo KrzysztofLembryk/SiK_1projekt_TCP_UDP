@@ -27,14 +27,14 @@ int TCP_client_send_CONN(int socket_fd, CONN *conn)
     if (written_length < 0) 
     {
         error("TCP_client_send_CONN - writen < 0");
-        return -1;
+        return ERROR;
     }
     else if ((size_t) written_length != sizeof(*conn)) 
     {
         error("TCP_client_send_CONN - incomplete writen");
-        return -1;
+        return ERROR;
     }
-    return 0;
+    return SUCCESS;
 }
 
 int send_data_wrapper(int socket_fd, DATA *data)
@@ -44,15 +44,15 @@ int send_data_wrapper(int socket_fd, DATA *data)
     if (written_length < 0) 
     {
         error("send_DATA - writen < 0 \n");
-        return -1;
+        return ERROR;
     }
     else if ((size_t) written_length != sizeof(*data)) 
     {
         error("send_DATA - incomplete writen\n");
-        return -1;
+        return ERROR;
     }
 
-    return 0;
+    return SUCCESS;
 }
 
 int TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
@@ -75,7 +75,7 @@ int TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
             if (init_DATA(&data, session_id, curr_package_id, 
                                                 bytes_left, buff) != SUCCESS)
             {
-                return -1;
+                return ERROR;
             }
 
             bytes_sent += bytes_left;
@@ -87,7 +87,7 @@ int TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
             if (init_DATA(&data, session_id, curr_package_id, 
                                             SEND_BUFF_SIZE, buff) != SUCCESS)
             {
-                return -1;
+                return ERROR;
             }
 
             bytes_sent += SEND_BUFF_SIZE;
@@ -98,9 +98,9 @@ int TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
         curr_package_id++;
 
         if (send_data_wrapper(socket_fd, &data) != SUCCESS)
-            return -1;
+            return ERROR;
     }
-    return 0;
+    return SUCCESS;
 }
 
 void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, unsigned int session_id)
