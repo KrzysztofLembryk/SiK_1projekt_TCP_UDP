@@ -56,12 +56,12 @@ int TCP_conn_init_helper(CONN *conn, int client_fd)
     if (conn->package_type_id != CONN_ID)
     {
         error("connection closed - wrong package_type_id");
-        return -2;
+        return ERROR;
     }
     if (conn->protocol_id != TCP_PROTOCOL)
     {
         error("Wrong protocol");
-        return -2;
+        return ERROR;
     }
     return SUCCESS;
 }
