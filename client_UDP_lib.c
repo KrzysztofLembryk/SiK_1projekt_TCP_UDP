@@ -1,4 +1,5 @@
 #include <sys/socket.h>
+#include <endian.h>
 #include "client_UDP_lib.h"
 #include "packet_structures.h"
 #include "common.h"
@@ -54,6 +55,58 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
     return received_length;
 }
 
+// int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
+//                 socklen_t server_address_len, my_vec_t *vec, uint64_t session_id)
+// {
+//     uint32_t bytes_left = vec->occupied_size;
+//     uint32_t bytes_sent = 0;
+//     uint64_t start_cpy_pos = 0;
+//     uint64_t curr_package_id = 0;
+//     char buff[SEND_BUFF_SIZE + 1];
+//     DATA data;
+
+//     while (bytes_sent != vec->occupied_size)
+//     {
+//         memset(buff, 0, SEND_BUFF_SIZE + 1);
+        
+//         if (bytes_left < SEND_BUFF_SIZE)
+//         {
+//             strncpy(buff, vec->buff + start_cpy_pos, bytes_left);
+
+//             if (init_DATA(&data, session_id, curr_package_id, 
+//                                                 bytes_left, buff) != SUCCESS)
+//             {
+//                 return ERROR;
+//             }
+
+//             bytes_sent += bytes_left;
+//             bytes_left -= bytes_left;
+//         }
+//         else
+//         {
+//             strncpy(buff, vec->buff + start_cpy_pos, SEND_BUFF_SIZE);
+//             if (init_DATA(&data, session_id, curr_package_id, 
+//                                             SEND_BUFF_SIZE, buff) != SUCCESS)
+//             {
+//                 return ERROR;
+//             }
+
+//             bytes_sent += SEND_BUFF_SIZE;
+//             bytes_left -= SEND_BUFF_SIZE;
+//             start_cpy_pos += SEND_BUFF_SIZE;
+//         }
+
+//         curr_package_id++;
+
+//         if (sendto_wrapper(socket_fd, server_address, server_address_len,
+//          &data, sizeof(data), __FUNCTION__)  != SUCCESS)
+//         {
+//             return ERROR;
+//         }
+//     }
+//     return SUCCESS;
+// }
+
 int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
                 socklen_t server_address_len, my_vec_t *vec, uint64_t session_id)
 {
@@ -98,8 +151,9 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
         curr_package_id++;
 
         if (sendto_wrapper(socket_fd, server_address, server_address_len,
-         &data, sizeof(data), __FUNCTION__)  != SUCCESS)
+         &data, sizeof(DATA_INFO_t) + be32toh(data.nbr_of_bytes_in_packet), __FUNCTION__)  != SUCCESS)
         {
+            printf("WTF - udp client send data\n");
             return ERROR;
         }
     }
