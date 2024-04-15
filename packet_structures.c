@@ -49,6 +49,22 @@ int init_DATA(DATA *data, uint64_t session_id, uint64_t package_id,
     return 0;
 }
 
+int init_DATA_INFO(DATA_INFO_t *data_info, uint64_t session_id, 
+                            uint64_t package_id, uint32_t nbr_of_bytes)
+{
+    data->package_type_id = DATA_ID;
+    data->session_id = htobe64(session_id);
+    data->package_id = htobe64(package_id);
+    data->nbr_of_bytes_in_packet = htobe32(nbr_of_bytes);
+
+    if (nbr_of_bytes > SEND_BUFF_SIZE)
+    {
+        error("init_DATA - given nbr of bytes is greater than BUFF SIZE!\n");
+        return -1;
+    }
+    return 0;
+}
+
 void init_ACC(ACC *acc, uint64_t session_id, uint64_t package_id)
 {
     acc->package_type_id = ACC_ID;

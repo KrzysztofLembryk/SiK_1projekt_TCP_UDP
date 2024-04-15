@@ -99,6 +99,9 @@ void init_CONRJT(CONRJT *conrjt, uint64_t session_id);
 int init_DATA(DATA *data, uint64_t session_id, uint64_t package_id, 
                 uint32_t nbr_of_bytes, char *bytes_to_send);
 
+int init_DATA_INFO(DATA_INFO_t *data_info, uint64_t session_id, 
+                    uint64_t package_id, uint32_t nbr_of_bytes);
+
 void init_ACC(ACC *acc, uint64_t session_id, uint64_t package_id);
 
 void init_RJT(RJT *rjt, uint64_t session_id, uint64_t package_id);
