@@ -27,11 +27,11 @@
 // - Before reading function zeros buffer
 // - If recvfrom read <= 0 bytes func returns -1, otherwise nbr of bytes read
 // - Function sets variables *client_address and client_addr_len
-ssize_t read_data_to_buffer(int socket_fd, char *buff,
+ssize_t read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
                             struct sockaddr_in *client_address,
                             socklen_t *client_address_len)
 {
-    memset(buff, 0, sizeof(buff));
+    memset(buff, 0, buff_size);
 
     // UDP gets data as datagrams that are stored in queue, so after we do
     // recvfrom, we read whole datagram from queue, so if we dont have
@@ -81,7 +81,7 @@ int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 }
 
 int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
-                socklen_t *client_address_len, uint64_t session_id, 
+                socklen_t client_address_len,  
                 void *data, size_t data_size, const char *function_name)
 {
     ssize_t sent_length = sendto(socket_fd, data, data_size,
@@ -93,7 +93,7 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
         make_error_msg(function_name, " - sent len < 0");
         return ERROR;
     }
-    else if (sent_length != data_size)
+    else if ((size_t)sent_length != data_size)
     {
         make_error_msg(function_name, " - sent_len not equal to size of data we wanted to send");
         return ERROR;
@@ -102,35 +102,37 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
 }
 
 int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
-                socklen_t *client_address_len, uint64_t session_id)
+                socklen_t client_address_len, uint64_t session_id)
 {
     CONRJT conrjt;
 
     init_CONRJT(&conrjt, session_id);
 
-    return sendto_wrapper(socket_fd, client_address, client_address_len, session_id, &conrjt, sizeof(conrjt), __FUNCTION__);
+    return sendto_wrapper(socket_fd, client_address, client_address_len, 
+     &conrjt, sizeof(conrjt), __FUNCTION__);
 }
 
 int send_CONACC(int socket_fd, struct sockaddr_in *client_address,
-                socklen_t *client_address_len, uint64_t session_id)
+                socklen_t client_address_len, uint64_t session_id)
 {
 
     CONACC conacc;
 
     init_CONACC(&conacc, session_id);
 
-    return sendto_wrapper(socket_fd, client_address, client_address_len, session_id, &conacc, sizeof(conacc), __FUNCTION__);
+    return sendto_wrapper(socket_fd, client_address, client_address_len, 
+    &conacc, sizeof(conacc), __FUNCTION__);
 }
 
 int send_RJT(int socket_fd, struct sockaddr_in *client_address,
-             socklen_t *client_address_len, uint64_t session_id,
+             socklen_t client_address_len, uint64_t session_id,
              uint64_t package_id)
 {
     RJT rjt;
 
     init_RJT(&rjt, session_id, package_id);
 
-    return sendto_wrapper(socket_fd, client_address, client_address_len, session_id, &rjt, sizeof(rjt), __FUNCTION__);
+    return sendto_wrapper(socket_fd, client_address, client_address_len, &rjt, sizeof(rjt), __FUNCTION__);
 }
 
 int check_if_correct_DATA_packet(char *buff,
@@ -169,7 +171,7 @@ int check_if_correct_DATA_packet(char *buff,
     return SUCCESS;
 }
 
-int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
+void UDP_data_receive(int socket_fd, char *buff, CONN *conn)
 {
     const uint64_t bytes_to_receive = conn->nbr_of_bytes_to_be_sent;
     uint64_t bytes_recvd = 0;
@@ -179,7 +181,7 @@ int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
 
     while (bytes_recvd < bytes_to_receive)
     {
-        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff,
+        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, BUFFOR_SIZE,
                                                  &client_address,
                                                  &client_address_len);
 
@@ -200,14 +202,14 @@ int UDP_data_receive(int socket_fd, char *buff, CONN *conn)
             // wrong session id (We assume that session id is unique), thus we
             // dont want to stop receiving data from our client so we wait for
             // another package, and send CONRJT to client who sent wrong one.
-            send_CONRJT(socket_fd, &client_address, &client_address_len,
+            send_CONRJT(socket_fd, &client_address, client_address_len,
                         conn->session_id);
             continue;
         }
         else if (ret_val == ERROR)
         {
             // Our client sent package with wrong data so we end connection
-            send_RJT(socket_fd, &client_address, &client_address_len,
+            send_RJT(socket_fd, &client_address, client_address_len,
                     conn->session_id, data_info.package_id);
             break;
         }
@@ -234,7 +236,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
     {
         struct sockaddr_in client_address;
         socklen_t client_address_len = (socklen_t)sizeof(client_address);
-        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff,
+        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, BUFFOR_SIZE,
                                                  &client_address,
                                                  &client_address_len);
         if (read_bytes <= 0)
@@ -244,12 +246,12 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 
         if (check_if_correct_CONN(buff, read_bytes, &conn) != SUCCESS)
         {
-            send_CONRJT(socket_fd, &client_address, &client_address_len,
+            send_CONRJT(socket_fd, &client_address, client_address_len,
                         conn.session_id);
             continue;
         }
 
-        if (send_CONACC(socket_fd, &client_address, &client_address_len,
+        if (send_CONACC(socket_fd, &client_address, client_address_len,
                         conn.session_id) != SUCCESS)
         {
             continue;
@@ -265,6 +267,8 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
             break;
         default:
             make_error_msg(__FUNCTION__, " - unknown protocol type");
+            break;
+        }
        
     }
 }

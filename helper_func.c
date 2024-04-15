@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <errno.h>
+#include <stdio.h>
 
 communication_type check_communication_type(const char* input)
 {

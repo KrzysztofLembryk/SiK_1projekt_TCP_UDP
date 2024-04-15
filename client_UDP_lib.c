@@ -11,10 +11,11 @@
 #define ERROR -1
 #define WRONG_SESSION_ID -2
 #define TIMEOUT_ERROR -3
+#define RESPONSE_BUFF_SIZE 200
 
 
 int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
-                socklen_t *server_address_len, uint64_t session_id, 
+                socklen_t server_address_len,  
                 void *data, size_t data_size, const char *function_name)
 {
     ssize_t sent_length = sendto(socket_fd, data, data_size,
@@ -26,7 +27,7 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
         make_error_msg(function_name, " - sent len < 0");
         return ERROR;
     }
-    else if (sent_length != data_size)
+    else if ((size_t)sent_length != data_size)
     {
         make_error_msg(function_name, " - sent_len not equal to size of data we wanted to send");
         return ERROR;
@@ -34,15 +35,15 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
-int wait_for_server_response(int socket_fd, char *response_buffer)
+int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size)
 {
-    memset(response_buffer, 0, sizeof(response_buffer)); 
+    memset(response_buffer, 0, buff_size); 
 
     struct sockaddr_in receive_address;
-    ssocklen_t server_address_len = (socklen_t)sizeof(receive_address);
+    socklen_t server_address_len = (socklen_t)sizeof(receive_address);
 
     ssize_t received_length = recvfrom(socket_fd, response_buffer, sizeof(response_buffer), RECEIVE_FLAGS, (struct sockaddr *)&receive_address, 
-    &server_address_len);
+    (socklen_t*)&server_address_len);
 
     if (received_length < 0)
     {
@@ -53,7 +54,7 @@ int wait_for_server_response(int socket_fd, char *response_buffer)
 }
 
 int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
-                socklen_t *server_address_len, my_vec_t *vec, uint64_t session_id)
+                socklen_t server_address_len, my_vec_t *vec, uint64_t session_id)
 {
     uint32_t bytes_left = vec->occupied_size;
     uint32_t bytes_sent = 0;
@@ -95,7 +96,8 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
 
         curr_package_id++;
 
-        if (sendto_wrapper(socket_fd, server_address, server_address_len, session_id, &data, sizeof(data), __FUNCTION__)  != SUCCESS)
+        if (sendto_wrapper(socket_fd, server_address, server_address_len,
+         &data, sizeof(data), __FUNCTION__)  != SUCCESS)
         {
             return ERROR;
         }
@@ -112,13 +114,13 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 
     socklen_t server_address_len = (socklen_t)sizeof(*server_address);
 
-    sendto_wrapper(socket_fd, server_address, &server_address_len, session_id, 
+    sendto_wrapper(socket_fd, server_address, server_address_len, 
     &conn, sizeof(conn), __FUNCTION__);
 
     // Now we wait for server response - whether conacc or conrjt
-    static char response_buffer[200];
+    static char response_buffer[RESPONSE_BUFF_SIZE];
 
-    ssize_t received_length = wait_for_server_response(socket_fd, response_buffer);
+    ssize_t received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
 
     if (received_length != SUCCESS)
     {
@@ -134,11 +136,11 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         return;
     }
 
-    if (UDP_client_send_DATA(socket_fd, vec, session_id) != SUCCES)
+    if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
         return;
     
     // Now we wait for rcvd
-    received_length = wait_for_server_response(socket_fd, response_buffer);
+    received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
 
     if (received_length != SUCCESS)
     {
