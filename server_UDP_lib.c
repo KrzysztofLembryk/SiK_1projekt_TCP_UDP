@@ -14,6 +14,7 @@
 #include "packet_structures.h"
 #include "helper_func.h"
 #include "err.h"
+#include "protconst.h"
 
 // - Function reads maximally RECEIVE_BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
@@ -264,9 +265,12 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 
     while (true)
     {
+        // We dont want to set timeout for our socket here since now we are 
+        // waiting for new connection, thus we can wait a long time.
         struct sockaddr_in client_address;
         socklen_t client_address_len = (socklen_t)sizeof(client_address);
-        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, RECEIVE_BUFFOR_SIZE,
+        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, 
+                                                 RECEIVE_BUFFOR_SIZE,
                                                  &client_address,
                                                  &client_address_len);
         if (read_bytes <= 0)
@@ -281,12 +285,17 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
             continue;
         }
 
-        sleep(11);
         if (send_CONACC(socket_fd, &client_address, client_address_len,
                         conn.session_id) != SUCCESS)
         {
             continue;
         }
+
+        // Only after establishing new connection we set timeout for our socket
+        // so that we won't wait eternity for msg from client, since he may not
+        // send it
+        struct timeval timeout = {.tv_sec = MAX_WAIT, .tv_usec = 0};
+        setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
 
         switch (conn.protocol_id)
         {
@@ -301,6 +310,12 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
                 make_error_msg(__FUNCTION__, " - unknown protocol type");
                 break;
         }
+
+        // If the timeout is set to zero (the default) then the operation 
+        // will never timeout
+        struct timeval no_timeout = {.tv_sec = 0, .tv_usec = 0};
+        setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &no_timeout, 
+                                                        sizeof no_timeout);
        
     }
 }
