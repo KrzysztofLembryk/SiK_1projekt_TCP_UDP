@@ -74,7 +74,7 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     while (bytes_sent != vec->occupied_size)
     {
         memset(buff, 0, SEND_BUFF_SIZE + 1);
-        
+        sleep(5);
         if (bytes_left < SEND_BUFF_SIZE)
         {
             strncpy(buff, vec->buff + start_cpy_pos, bytes_left);
