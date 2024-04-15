@@ -104,7 +104,7 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
-void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id)
+void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, communication_type comm_type)
 {
     CONN conn;
 
@@ -140,8 +140,19 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     }
 
     printf("Sending data\n");
-    if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
-        return;
+    switch (comm_type)
+    {
+    case UDP:
+        if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
+        {
+            return;
+        }
+        break;
+    case UDPR:
+        break; 
+    default:
+        break;
+    }
     
     // Now we wait for rcvd
     printf("Waiting for verver rcvd\n");
