@@ -20,9 +20,10 @@
 // - Before reading function zeros buffer
 // - If recvfrom read <= 0 bytes func returns -1, otherwise nbr of bytes read
 // - Function sets variables *client_address and client_addr_len
-ssize_t read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
+int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
                             struct sockaddr_in *client_address,
-                            socklen_t *client_address_len)
+                            socklen_t *client_address_len,
+                            ssize_t *read_bytes)
 {
     memset(buff, 0, buff_size);
 
@@ -30,27 +31,33 @@ ssize_t read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
     // recvfrom, we read whole datagram from queue, so if we dont have
     // enough space in buffor part of data is lost. Thus first we will read
     // whole datagram into buffer, then cast it on our structures i.e. CONN.
-    ssize_t read_bytes = recvfrom(socket_fd, buff, RECEIVE_BUFFOR_SIZE,
+    *read_bytes = recvfrom(socket_fd, buff, RECEIVE_BUFFOR_SIZE,
                                   DEFAULT_FLAG,
                                   (struct sockaddr *)client_address,
                                   (socklen_t *)client_address_len);
 
-    printf("READ BYTES: %zu\n", (size_t)read_bytes);
-    if (read_bytes < 0)
+    if (*read_bytes < 0)
     {
         if (errno == EAGAIN) 
+        {
             make_error_msg(__FUNCTION__, " - timeout\n"); 
+            return TIMEOUT_ERROR;
+        }
         else 
+        {
             make_error_msg(__FUNCTION__, " - read_bytes < 0");
-
-        return ERROR;
+            return ERROR;
+        }
     }
-    if (read_bytes == 0)
+
+    printf("READ BYTES: %zu\n", (size_t)*read_bytes);
+
+    if (*read_bytes == 0)
     {
         make_error_msg(__FUNCTION__, " - read_bytes == 0");
         return ERROR;
     }
-    return read_bytes;
+    return SUCCESS;
 }
 
 int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
@@ -203,15 +210,23 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn)
     while (bytes_recvd < bytes_to_receive)
     {
         printf("waiting for packet [%lu]\n", curr_package_id);
-        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, RECEIVE_BUFFOR_SIZE,
-                                                 &client_address,
-                                                 &client_address_len);
+        ssize_t read_bytes; 
 
-        if (read_bytes <= 0)
+        int read_ret_val = read_data_to_buffer(socket_fd, buff, 
+                                                 RECEIVE_BUFFOR_SIZE,
+                                                 &client_address,
+                                                 &client_address_len,
+                                                 &read_bytes);
+
+        if (read_ret_val == TIMEOUT_ERROR)
         {
             // If read bytes <= 0 we end connection since we have some error
             // it could be timeout
-            break;
+            return;
+        }
+        if (read_ret_val == ERROR)
+        {
+            return;
         }
 
         DATA_INFO_t data_info;
@@ -233,7 +248,7 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn)
             // Our client sent package with wrong data so we end connection
             send_RJT(socket_fd, &client_address, client_address_len,
                     conn->session_id, data_info.package_id);
-            break;
+            return;
         }
 
         curr_package_id++;
@@ -265,15 +280,22 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 
     while (true)
     {
+        // If the timeout is set to zero (the default) then the operation 
+        // will never timeout
+        struct timeval no_timeout = {.tv_sec = 0, .tv_usec = 0};
+        setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &no_timeout, 
+                                                        sizeof no_timeout);
         // We dont want to set timeout for our socket here since now we are 
         // waiting for new connection, thus we can wait a long time.
         struct sockaddr_in client_address;
         socklen_t client_address_len = (socklen_t)sizeof(client_address);
-        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, 
-                                                 RECEIVE_BUFFOR_SIZE,
-                                                 &client_address,
-                                                 &client_address_len);
-        if (read_bytes <= 0)
+        ssize_t read_bytes;
+        int read_ret_val = read_data_to_buffer(socket_fd, buff, 
+                                                        RECEIVE_BUFFOR_SIZE,
+                                                        &client_address,
+                                                        &client_address_len,
+                                                        &read_bytes);
+        if (read_ret_val < 0)
             continue;
 
         CONN conn;
@@ -310,12 +332,5 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
                 make_error_msg(__FUNCTION__, " - unknown protocol type");
                 break;
         }
-
-        // If the timeout is set to zero (the default) then the operation 
-        // will never timeout
-        struct timeval no_timeout = {.tv_sec = 0, .tv_usec = 0};
-        setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &no_timeout, 
-                                                        sizeof no_timeout);
-       
     }
 }

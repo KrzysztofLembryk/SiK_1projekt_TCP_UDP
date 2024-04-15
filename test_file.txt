@@ -1,5 +1,4 @@
 XDXDXD
 Ala ma kota
-trzeba zaczomc pisomc serwer UDP i klient UDP tez :(
 1234567890
 1234567890
