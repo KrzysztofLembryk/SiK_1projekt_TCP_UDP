@@ -265,7 +265,6 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
             break;
         default:
             make_error_msg(__FUNCTION__, " - unknown protocol type");
-            break;
-        }
+       
     }
 }
