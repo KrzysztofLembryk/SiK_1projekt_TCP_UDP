@@ -17,8 +17,8 @@
 #include "protconst.h"
 #include "helper_func.h"
 #include "server_TCP_lib.h"
+#include "constants.h"
 
-#define BUFFOR_SIZE 64000
 
 struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd)
 {
@@ -249,7 +249,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
         // Since buff is static it will be initialised only once, not every time
         // that loop gets here
-        static char buff[BUFFOR_SIZE];
+        static char buff[RECEIVE_BUFFOR_SIZE];
         uint64_t total_nbr_of_bytes_to_be_sent = conn.nbr_of_bytes_to_be_sent;
         uint64_t nbr_of_bytes_received = 0;
         uint64_t prev_packet_id = 0;

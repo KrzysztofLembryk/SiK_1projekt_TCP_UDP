@@ -5,9 +5,9 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#define TCP_PROTOCOL 1
-#define UDP_PROTOCOL 2
-#define UDPR_PROTOCOL 3
+// #define TCP_PROTOCOL 1
+// #define UDP_PROTOCOL 2
+// #define UDPR_PROTOCOL 3
 
 uint16_t port_from_str_to_ul(char const *string);
 struct sockaddr_in get_server_address(char const *host, uint16_t port);

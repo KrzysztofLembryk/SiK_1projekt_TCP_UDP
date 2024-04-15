@@ -5,13 +5,8 @@
 #include "common.h"
 #include "err.h"
 #include "helper_func.h"
+#include "constants.h"
 
-#define SEND_FLAGS 0
-#define RECEIVE_FLAGS 0
-#define SUCCESS 0
-#define ERROR -1
-#define WRONG_SESSION_ID -2
-#define TIMEOUT_ERROR -3
 #define RESPONSE_BUFF_SIZE 200
 
 

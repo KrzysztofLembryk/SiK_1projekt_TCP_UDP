@@ -14,7 +14,6 @@
 #include "server_UDP_lib.h"
 
 
-#define QUEUE_LEN 5
 
 
 int main(int argc, char *argv[])

@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+#include "constants.h"
 #include "common.h"
 #include "packet_structures.h"
 #include "helper_func.h"
@@ -16,14 +17,14 @@
 
 // Buffor is 65000 since we need space for 64kB of data and also for packages
 // headers
-#define BUFFOR_SIZE 65000
-#define DEFAULT_FLAG 0
-#define SUCCESS 0
-#define ERROR -1
-#define WRONG_SESSION_ID -2
-#define TIMEOUT_ERROR -3
+// #define RECEIVE_BUFFOR_SIZE 65000
+// #define DEFAULT_FLAG 0
+// #define SUCCESS 0
+// #define ERROR -1
+// #define WRONG_SESSION_ID -2
+// #define TIMEOUT_ERROR -3
 
-// - Function reads maximally BUFFOR_SIZE bytes to buff
+// - Function reads maximally RECEIVE_BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
 // - If recvfrom read <= 0 bytes func returns -1, otherwise nbr of bytes read
 // - Function sets variables *client_address and client_addr_len
@@ -37,7 +38,7 @@ ssize_t read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
     // recvfrom, we read whole datagram from queue, so if we dont have
     // enough space in buffor part of data is lost. Thus first we will read
     // whole datagram into buffer, then cast it on our structures i.e. CONN.
-    ssize_t read_bytes = recvfrom(socket_fd, buff, BUFFOR_SIZE,
+    ssize_t read_bytes = recvfrom(socket_fd, buff, RECEIVE_BUFFOR_SIZE,
                                   DEFAULT_FLAG,
                                   (struct sockaddr *)client_address,
                                   (socklen_t *)client_address_len);
@@ -209,7 +210,7 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn)
     while (bytes_recvd < bytes_to_receive)
     {
         printf("waiting for packet [%lu]\n", curr_package_id);
-        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, BUFFOR_SIZE,
+        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, RECEIVE_BUFFOR_SIZE,
                                                  &client_address,
                                                  &client_address_len);
 
@@ -267,13 +268,13 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
     printf("UDPserver is listening on port %" PRIu16 "\n",
            ntohs(server_address->sin_port));
 
-    static char buff[BUFFOR_SIZE];
+    static char buff[RECEIVE_BUFFOR_SIZE];
 
     while (true)
     {
         struct sockaddr_in client_address;
         socklen_t client_address_len = (socklen_t)sizeof(client_address);
-        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, BUFFOR_SIZE,
+        ssize_t read_bytes = read_data_to_buffer(socket_fd, buff, RECEIVE_BUFFOR_SIZE,
                                                  &client_address,
                                                  &client_address_len);
         if (read_bytes <= 0)

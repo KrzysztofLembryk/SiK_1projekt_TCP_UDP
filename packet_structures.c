@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "err.h"
 #include "helper_func.h"
+#include "constants.h"
 
 
 // -----INIT FUNCTIONS-----

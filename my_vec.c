@@ -4,8 +4,8 @@
 #include "err.h"
 #include "my_vec.h"
 
-#define INIT_VEC_SIZE 4096
-#define BUFF_SIZE 1024
+#define INIT_VEC_SIZE 16384
+#define INPUT_BUFF_SIZE 32768
 
 // -----HELPER FUNCTIONS-----
 
@@ -107,8 +107,8 @@ void my_vec_print(my_vec_t *my_vec)
 // after successfully reading all data also adds \0 to the end of vec.
 void my_vec_read_stdin(my_vec_t *my_vec)
 {
-    static char read_buff[BUFF_SIZE];
-    size_t buff_size = BUFF_SIZE;
+    static char read_buff[INPUT_BUFF_SIZE];
+    size_t buff_size = INPUT_BUFF_SIZE;
     ssize_t nbr_of_bytes_read = 0;
 
     memset(read_buff, 0, sizeof(read_buff));
