@@ -224,11 +224,10 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         // protocol_id = TCP_PROTOCOL to establish connection with client
         CONN conn;
         conn.package_type_id = 77;
-        int init_ret_val = TCP_handle_conn_init(&conn, client_fd);
 
         // We didnt receive correct CONN packet thus we end connection with
         // client and move on 
-        if (init_ret_val != 0)
+        if (TCP_handle_conn_init(&conn, client_fd) != SUCCESS)
         {
             close(client_fd);
             continue;
