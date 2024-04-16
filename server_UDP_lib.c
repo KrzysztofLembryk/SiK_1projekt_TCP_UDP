@@ -365,6 +365,22 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
                         conn->session_id);
             continue;
         }
+        else if (ret_val == WRONG_PACKAGE_TYPE_ID)
+        {
+            if (data_info.package_type_id == CONN_ID)
+            {
+                continue;
+            }
+            else
+            {
+                // We ignore only CONN packages from our client, otherwise he
+                // must have sent sth wrong thus connection is incorrect thus
+                // we end it
+                send_RJT(socket_fd, &client_address, client_address_len,
+                        conn->session_id, curr_package_id);
+                return;
+            }
+        }
         else if (ret_val == WRONG_PACKAGE_ID)
         {
             // If we get data with correct session id (this means its from our 

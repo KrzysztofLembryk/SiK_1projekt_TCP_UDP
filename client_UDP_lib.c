@@ -67,7 +67,7 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     uint32_t bytes_sent = 0;
     uint64_t start_cpy_pos = 0;
     uint64_t curr_package_id = 0;
-    char buff[SEND_BUFF_SIZE + 1];
+    static char buff[SEND_BUFF_SIZE + 1];
     DATA data;
 
     while (bytes_sent != vec->occupied_size)
@@ -222,8 +222,72 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
 }
 
 int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
-                          socklen_t server_address_len, my_vec_t *vec, uint64_t session_id)
+                          socklen_t server_address_len, my_vec_t *vec, uint64_t session_id, int *nbr_of_retransmits)
 {
+    uint32_t bytes_left = vec->occupied_size;
+    uint32_t bytes_sent = 0;
+    uint64_t start_cpy_pos = 0;
+    uint64_t shift = 0;
+    uint64_t curr_package_id = 0;
+    ssize_t received_length = 0;
+    static char buff[SEND_BUFF_SIZE + 1];
+    static char response_buff[RESPONSE_BUFF_SIZE];
+    DATA data;
+
+    while (bytes_sent != vec->occupied_size)
+    {
+        memset(buff, 0, SEND_BUFF_SIZE + 1);
+        memset(response_buff, 0, RESPONSE_BUFF_SIZE);
+        // sleep(11);
+        if (bytes_left < SEND_BUFF_SIZE)
+        {
+            strncpy(buff, vec->buff + start_cpy_pos, bytes_left);
+
+            if (init_DATA(&data, session_id, curr_package_id,
+                          bytes_left, buff) != SUCCESS)
+            {
+                return ERROR;
+            }
+
+            // bytes_sent += bytes_left;
+            // bytes_left -= bytes_left;
+            shift = bytes_left;
+        }
+        else
+        {
+            strncpy(buff, vec->buff + start_cpy_pos, SEND_BUFF_SIZE);
+            if (init_DATA(&data, session_id, curr_package_id,
+                          SEND_BUFF_SIZE, buff) != SUCCESS)
+            {
+                return ERROR;
+            }
+
+            // bytes_sent += SEND_BUFF_SIZE;
+            // bytes_left -= SEND_BUFF_SIZE;
+            shift = SEND_BUFF_SIZE;
+        }
+
+
+        if (sendto_wrapper(socket_fd, server_address, server_address_len,
+                           &data, sizeof(DATA_INFO_t) + be32toh(data.nbr_of_bytes_in_packet), __FUNCTION__) != SUCCESS)
+        {
+            printf("WTF - udp client send data\n");
+            return ERROR;
+        }
+
+        // Here might be a few CONACC from server, we want to ignore them thus
+        // we need a loop
+        ACC acc;
+        if (wait_for_server_response(socket_fd, response_buff, RESPONSE_BUFF_SIZE, &received_length) != SUCCESS)
+        {
+
+        }
+
+        curr_package_id++;
+        bytes_sent += shift;
+        bytes_left -= shift;
+        start_cpy_pos += shift;
+    }
     return SUCCESS;
 }
 
@@ -257,24 +321,12 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
         }
     } while (init_ret_val != SUCCESS);
     
-    // Connection with server was established succesfully
+    // Connection with server was established succesfully, now we will be 
+    // sending our data
 
     
 
     printf("Sending data\n");
-    switch (comm_type)
-    {
-    case UDP:
-        if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
-        {
-            return;
-        }
-        break;
-    case UDPR:
-        break;
-    default:
-        break;
-    }
 
     // Now we wait for rcvd
     printf("Waiting for verver rcvd\n");
