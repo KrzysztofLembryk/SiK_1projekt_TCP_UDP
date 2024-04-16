@@ -151,6 +151,8 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc), (size_t)received_length);
     cast_buff_to(&conacc, sizeof(conacc), response_buffer, (size_t)received_length);
 
+    // we should also check if session id is correct, to find out whether 
+    // correct server sent us conacc
     if (conacc.package_type_id != CONACC_ID)
     {
         make_error_msg(__FUNCTION__, " - rcvd package type id is not CONACC");
