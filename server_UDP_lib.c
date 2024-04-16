@@ -408,6 +408,11 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
 
         printf("bytes recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
     }
+
+    if (bytes_recvd == bytes_to_receive)
+        send_RCVD(socket_fd, &client_address, client_address_len, conn->session_id);
+    else
+        send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
 }
 
 void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
@@ -463,7 +468,6 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
             case UDP_PROTOCOL:
                 printf("Will be receiving data from client\n");
                 UDP_data_receive(socket_fd, buff, &conn);
-                /* code */
                 break;
             case UDPR_PROTOCOL:
                 printf("UDPR server will be receiving data from client\n");
