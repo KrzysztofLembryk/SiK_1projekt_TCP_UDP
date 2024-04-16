@@ -11,10 +11,9 @@
 
 #define RESPONSE_BUFF_SIZE 200
 
-
 int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
-                socklen_t server_address_len,  
-                void *data, size_t data_size, const char *function_name)
+                   socklen_t server_address_len,
+                   void *data, size_t data_size, const char *function_name)
 {
     ssize_t sent_length = sendto(socket_fd, data, data_size,
                                  SEND_FLAGS,
@@ -36,13 +35,13 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
 int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size)
 {
     printf("waiting for server repsonse\n");
-    memset(response_buffer, 0, buff_size); 
+    memset(response_buffer, 0, buff_size);
 
     struct sockaddr_in receive_address;
     socklen_t server_address_len = (socklen_t)sizeof(receive_address);
 
-    ssize_t received_length = recvfrom(socket_fd, response_buffer, buff_size, RECEIVE_FLAGS, (struct sockaddr *)&receive_address, 
-    (socklen_t*)&server_address_len);
+    ssize_t received_length = recvfrom(socket_fd, response_buffer, buff_size, RECEIVE_FLAGS, (struct sockaddr *)&receive_address,
+                                       (socklen_t *)&server_address_len);
 
     if (received_length < 0)
     {
@@ -53,16 +52,15 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
         }
         else
         {
-            make_error_msg(__FUNCTION__, " - recvfrom < 0"); 
+            make_error_msg(__FUNCTION__, " - recvfrom < 0");
             return ERROR;
         }
     }
     return received_length;
 }
 
-
 int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
-                socklen_t server_address_len, my_vec_t *vec, uint64_t session_id)
+                         socklen_t server_address_len, my_vec_t *vec, uint64_t session_id)
 {
     uint32_t bytes_left = vec->occupied_size;
     uint32_t bytes_sent = 0;
@@ -79,8 +77,8 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
         {
             strncpy(buff, vec->buff + start_cpy_pos, bytes_left);
 
-            if (init_DATA(&data, session_id, curr_package_id, 
-                                                bytes_left, buff) != SUCCESS)
+            if (init_DATA(&data, session_id, curr_package_id,
+                          bytes_left, buff) != SUCCESS)
             {
                 return ERROR;
             }
@@ -91,8 +89,8 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
         else
         {
             strncpy(buff, vec->buff + start_cpy_pos, SEND_BUFF_SIZE);
-            if (init_DATA(&data, session_id, curr_package_id, 
-                                            SEND_BUFF_SIZE, buff) != SUCCESS)
+            if (init_DATA(&data, session_id, curr_package_id,
+                          SEND_BUFF_SIZE, buff) != SUCCESS)
             {
                 return ERROR;
             }
@@ -105,7 +103,7 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
         curr_package_id++;
 
         if (sendto_wrapper(socket_fd, server_address, server_address_len,
-         &data, sizeof(DATA_INFO_t) + be32toh(data.nbr_of_bytes_in_packet), __FUNCTION__)  != SUCCESS)
+                           &data, sizeof(DATA_INFO_t) + be32toh(data.nbr_of_bytes_in_packet), __FUNCTION__) != SUCCESS)
         {
             printf("WTF - udp client send data\n");
             return ERROR;
@@ -113,7 +111,6 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     }
     return SUCCESS;
 }
-
 
 void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, communication_type comm_type)
 {
@@ -125,8 +122,8 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     socklen_t server_address_len = (socklen_t)sizeof(*server_address);
 
     printf("Sending conn package \n");
-    sendto_wrapper(socket_fd, server_address, server_address_len, 
-    &conn, sizeof(conn), __FUNCTION__);
+    sendto_wrapper(socket_fd, server_address, server_address_len,
+                   &conn, sizeof(conn), __FUNCTION__);
 
     // Now we wait for server response - whether conacc or conrjt
     static char response_buffer[RESPONSE_BUFF_SIZE];
@@ -138,7 +135,7 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     }
     else if (received_length == TIMEOUT_ERROR)
         return;
-    
+
     printf("Got response, now casting it\n");
 
     CONACC conacc;
@@ -146,7 +143,7 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc), (size_t)received_length);
     cast_buff_to(&conacc, sizeof(conacc), response_buffer, (size_t)received_length);
 
-    // we should also check if session id is correct, to find out whether 
+    // we should also check if session id is correct, to find out whether
     // correct server sent us conacc
     if (conacc.package_type_id != CONACC_ID)
     {
@@ -157,18 +154,18 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     printf("Sending data\n");
     switch (comm_type)
     {
-        case UDP:
-            if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
-            {
-                return;
-            }
-            break;
-        case UDPR:
-            break; 
-        default:
-            break;
+    case UDP:
+        if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
+        {
+            return;
+        }
+        break;
+    case UDPR:
+        break;
+    default:
+        break;
     }
-    
+
     // Now we wait for rcvd
     printf("Waiting for verver rcvd\n");
     received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
@@ -190,28 +187,20 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     }
 }
 
-
-int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
-                socklen_t server_address_len, my_vec_t *vec, uint64_t session_id)
+int UDPR_client_init_connection(int socket_fd, char *response_buffer,
+                                struct sockaddr_in *server_address, socklen_t server_address_len,
+                                uint64_t session_id)
 {
-    return SUCCESS;
-}
-
-void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, communication_type comm_type)
-{
-    socklen_t server_address_len = (socklen_t)sizeof(*server_address);
 
     CONN conn;
     init_CONN(&conn, session_id, UDPR_PROTOCOL, vec->occupied_size);
     // init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
 
-
     printf("Sending conn package \n");
-    sendto_wrapper(socket_fd, server_address, server_address_len, 
-    &conn, sizeof(conn), __FUNCTION__);
+    sendto_wrapper(socket_fd, server_address, server_address_len,
+                   &conn, sizeof(conn), __FUNCTION__);
 
     // Now we wait for server response - whether conacc or conrjt
-    static char response_buffer[RESPONSE_BUFF_SIZE];
     ssize_t received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
 
     if (received_length == ERROR)
@@ -220,7 +209,20 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     }
     else if (received_length == TIMEOUT_ERROR)
         return;
-    
+}
+
+int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
+                          socklen_t server_address_len, my_vec_t *vec, uint64_t session_id)
+{
+    return SUCCESS;
+}
+
+void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, communication_type comm_type)
+{
+    socklen_t server_address_len = (socklen_t)sizeof(*server_address);
+    int nbr_of_retransmits = 0;
+    static char response_buffer[RESPONSE_BUFF_SIZE];
+
     printf("Got response, now casting it\n");
 
     CONACC conacc;
@@ -228,7 +230,7 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc), (size_t)received_length);
     cast_buff_to(&conacc, sizeof(conacc), response_buffer, (size_t)received_length);
 
-    // we should also check if session id is correct, to find out whether 
+    // we should also check if session id is correct, to find out whether
     // correct server sent us conacc
     if (conacc.package_type_id != CONACC_ID)
     {
@@ -239,18 +241,18 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     printf("Sending data\n");
     switch (comm_type)
     {
-        case UDP:
-            if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
-            {
-                return;
-            }
-            break;
-        case UDPR:
-            break; 
-        default:
-            break;
+    case UDP:
+        if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
+        {
+            return;
+        }
+        break;
+    case UDPR:
+        break;
+    default:
+        break;
     }
-    
+
     // Now we wait for rcvd
     printf("Waiting for verver rcvd\n");
     received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
