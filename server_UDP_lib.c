@@ -159,6 +159,20 @@ int send_RCVD(int socket_fd, struct sockaddr_in *client_address,
     return ret_val;
 }
 
+int send_ACC(int socket_fd, struct sockaddr_in *client_address,
+             socklen_t client_address_len, uint64_t session_id, 
+             uint64_t package_id)
+{
+    printf("Sending ACC\n");
+    ACC acc;
+
+    init_ACC(&acc, session_id, package_id);
+
+    int ret_val =  sendto_wrapper(socket_fd, client_address, client_address_len, &acc, sizeof(acc), __FUNCTION__);
+
+    return ret_val;
+}
+
 int check_if_correct_DATA_packet(char *buff,
                                  ssize_t read_bytes,
                                  CONN *conn,
