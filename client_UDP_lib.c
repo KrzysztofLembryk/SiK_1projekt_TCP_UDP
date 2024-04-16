@@ -1,13 +1,14 @@
 #include <sys/socket.h>
 #include <endian.h>
 #include <errno.h>
+#include <unistd.h>
 #include "client_UDP_lib.h"
 #include "packet_structures.h"
 #include "common.h"
 #include "err.h"
 #include "helper_func.h"
 #include "constants.h"
-#include <unistd.h>
+#include "protconst.h"
 
 #define RESPONSE_BUFF_SIZE 200
 
@@ -32,7 +33,7 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
-int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size)
+int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length)
 {
     printf("waiting for server repsonse\n");
     memset(response_buffer, 0, buff_size);
@@ -40,7 +41,7 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
     struct sockaddr_in receive_address;
     socklen_t server_address_len = (socklen_t)sizeof(receive_address);
 
-    ssize_t received_length = recvfrom(socket_fd, response_buffer, buff_size, RECEIVE_FLAGS, (struct sockaddr *)&receive_address,
+    *received_length = recvfrom(socket_fd, response_buffer, buff_size, RECEIVE_FLAGS, (struct sockaddr *)&receive_address,
                                        (socklen_t *)&server_address_len);
 
     if (received_length < 0)
@@ -56,7 +57,7 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
             return ERROR;
         }
     }
-    return received_length;
+    return SUCCESS;
 }
 
 int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
@@ -127,13 +128,14 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 
     // Now we wait for server response - whether conacc or conrjt
     static char response_buffer[RESPONSE_BUFF_SIZE];
-    ssize_t received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
+    ssize_t received_length;
+    int wait_ret_val = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length);
 
-    if (received_length == ERROR)
+    if (wait_ret_val == ERROR)
     {
         return;
     }
-    else if (received_length == TIMEOUT_ERROR)
+    else if (wait_ret_val == TIMEOUT_ERROR)
         return;
 
     printf("Got response, now casting it\n");
@@ -168,13 +170,13 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 
     // Now we wait for rcvd
     printf("Waiting for verver rcvd\n");
-    received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
+    wait_ret_val = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length);
 
-    if (received_length == ERROR)
+    if (wait_ret_val == ERROR)
     {
         return;
     }
-    else if (received_length == TIMEOUT_ERROR)
+    else if (wait_ret_val == TIMEOUT_ERROR)
         return;
 
     RCVD rcvd;
@@ -188,27 +190,41 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 }
 
 int UDPR_client_init_connection(int socket_fd, char *response_buffer,
-                                struct sockaddr_in *server_address, socklen_t server_address_len,
-                                uint64_t session_id)
+                                struct sockaddr_in *server_address, 
+                                socklen_t server_address_len,
+                                uint64_t session_id,
+                                ssize_t *received_length,
+                                CONACC *conacc)
 {
-
     CONN conn;
     init_CONN(&conn, session_id, UDPR_PROTOCOL, vec->occupied_size);
-    // init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
 
     printf("Sending conn package \n");
-    sendto_wrapper(socket_fd, server_address, server_address_len,
-                   &conn, sizeof(conn), __FUNCTION__);
-
-    // Now we wait for server response - whether conacc or conrjt
-    ssize_t received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
-
-    if (received_length == ERROR)
+    if (sendto_wrapper(socket_fd, server_address, server_address_len,
+                   &conn, sizeof(conn), __FUNCTION__) != SUCCESS)
     {
-        return;
+        char msg[100];
+        strcpy(msg, __FUNCTION__);
+        strcat(msg, " - sendto error  <= 0");
+        fatal(msg);
+        // return ERROR;
     }
-    else if (received_length == TIMEOUT_ERROR)
-        return;
+
+    if (wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, received_length) != SUCCES)
+    {
+        return ERROR;
+    }
+
+    printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(*conacc), (size_t)received_length);
+    cast_buff_to(&conacc, sizeof(*conacc), response_buffer, (size_t)received_length);
+    ntoh_CONACC(conacc);
+
+    if (conacc->package_type_id != CONACC_ID || conacc->session_id != session_id)
+    {
+        return ERROR;
+    }
+
+    return SUCCESS;
 }
 
 int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
@@ -222,21 +238,34 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     socklen_t server_address_len = (socklen_t)sizeof(*server_address);
     int nbr_of_retransmits = 0;
     static char response_buffer[RESPONSE_BUFF_SIZE];
+    ssize_t received_length;
+    int init_ret_val;
 
     printf("Got response, now casting it\n");
-
     CONACC conacc;
 
-    printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc), (size_t)received_length);
-    cast_buff_to(&conacc, sizeof(conacc), response_buffer, (size_t)received_length);
-
-    // we should also check if session id is correct, to find out whether
-    // correct server sent us conacc
-    if (conacc.package_type_id != CONACC_ID)
+    do
     {
-        make_error_msg(__FUNCTION__, " - rcvd package type id is not CONACC");
-        return;
-    }
+        memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
+
+        init_ret_val = UDPR_client_init_connection(socket_fd, response_buffer, server_address, server_address_len, session_id, 
+        &received_length, &conacc);
+
+        if (init_ret_val != SUCCESS)
+        {
+            nbr_of_retransmits++;
+            if (nbr_of_retransmits > MAX_RETRANSMITS)
+            {
+                make_error_msg(__FUNCTION__, " - nbr of retransmits greater than MAX nbr of retransmits");
+                return;
+            }
+            continue;
+        }
+    } while (init_ret_val != SUCCESS);
+    
+    // Connection with server was established succesfully
+
+    
 
     printf("Sending data\n");
     switch (comm_type)
