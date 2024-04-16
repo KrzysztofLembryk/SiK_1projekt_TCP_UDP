@@ -154,30 +154,19 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     }
 
     printf("Sending data\n");
-    switch (comm_type)
+    if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
     {
-    case UDP:
-        if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
-        {
-            return;
-        }
-        break;
-    case UDPR:
-        break;
-    default:
-        break;
+        return;
     }
 
     // Now we wait for rcvd
     printf("Waiting for verver rcvd\n");
     wait_ret_val = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length);
 
-    if (wait_ret_val == ERROR)
+    if (wait_ret_val != SUCCESS)
     {
         return;
     }
-    else if (wait_ret_val == TIMEOUT_ERROR)
-        return;
 
     RCVD rcvd;
     cast_buff_to(&rcvd, sizeof(rcvd), response_buffer, (size_t)received_length);
@@ -189,6 +178,10 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     }
 }
 
+// - Function tries to establish connection with server by sending CONN and 
+// waiting to receive CONACC.
+// - If any error occured function returns ERROR, otherwise if connection was
+// established returns SUCCESS
 int UDPR_client_init_connection(int socket_fd, char *response_buffer,
                                 struct sockaddr_in *server_address, 
                                 socklen_t server_address_len,
@@ -203,14 +196,15 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
     if (sendto_wrapper(socket_fd, server_address, server_address_len,
                    &conn, sizeof(conn), __FUNCTION__) != SUCCESS)
     {
-        char msg[100];
-        strcpy(msg, __FUNCTION__);
-        strcat(msg, " - sendto error  <= 0");
-        fatal(msg);
-        // return ERROR;
+        // char msg[100];
+        // strcpy(msg, __FUNCTION__);
+        // strcat(msg, " - sendto error  <= 0");
+        // fatal(msg);
+        make_error_msg(__FUNCTION__, " - sendto error <= 0");
+        return ERROR;
     }
 
-    if (wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, received_length) != SUCCES)
+    if (wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, received_length) != SUCCESS)
     {
         return ERROR;
     }
@@ -243,7 +237,7 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
 
     printf("Got response, now casting it\n");
     CONACC conacc;
-
+    // INITIALIZATION OF CONNECTION
     do
     {
         memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
