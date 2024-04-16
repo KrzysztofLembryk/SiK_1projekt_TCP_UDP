@@ -32,7 +32,10 @@
 #define SUCCESS 0
 #define ERROR -1
 #define WRONG_SESSION_ID -2
-#define TIMEOUT_ERROR -3
+#define WRONG_PACKAGE_TYPE_ID -3
+#define WRONG_PACKAGE_ID -4
+#define WRONG_PACKAGE_SIZE -5
+#define TIMEOUT_ERROR -6
 
 // -----SOCKET COMMUNICATION FLAGS-----
 

@@ -194,12 +194,12 @@ int check_if_correct_DATA_packet(char *buff,
     if (d_info->package_type_id != DATA_ID)
     {
         make_error_msg(__FUNCTION__, " - received pacakge_type is not DATA");
-        return ERROR;
+        return WRONG_PACKAGE_TYPE_ID;
     }
     if (d_info->package_id != curr_package_id)
     {
         make_error_msg(__FUNCTION__, " - received DATA package has wrong package id");
-        return ERROR;
+        return WRONG_PACKAGE_ID;
     }
     if (read_bytes - sizeof(*d_info) - d_info->nbr_of_bytes_in_packet != 0)
     {
@@ -207,7 +207,7 @@ int check_if_correct_DATA_packet(char *buff,
         printf("sizeof dinfo: %zu\n", sizeof(*d_info));
         printf("nbr of bytes in data: %" PRIu32 "\n", d_info->nbr_of_bytes_in_packet);
         make_error_msg(__FUNCTION__, " - nbr of received bytes from client is not equal to declared nbr of bytes in DATA_INFO header");
-        return ERROR;
+        return WRONG_PACKAGE_SIZE;
     }
 
     return SUCCESS;
@@ -257,7 +257,7 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn)
                         conn->session_id);
             continue;
         }
-        else if (ret_val == ERROR)
+        else if (ret_val != SUCCESS)
         {
             // Our client sent package with wrong data so we end connection
             send_RJT(socket_fd, &client_address, client_address_len,
@@ -281,8 +281,133 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn)
         send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
 }
 
-void UPDR_data_receive()
+int do_retransmission(int socket_fd, struct sockaddr_in *client_address, socklen_t client_address_len, CONN *conn, bool is_first_DATA_packet, int *nbr_of_retransmits, uint64_t curr_package_id)
 {
+
+    (*nbr_of_retransmits)++;
+    if (nbr_of_retransmits > MAX_RETRANSMITS)
+    {
+        make_error_msg(__FUNCTION__, " - nbr of available retransmits have been reached");
+        return ERROR;
+    }
+    // We got timeout error so we send CONACC again if we havent got 
+    // first DATA packet
+    if (is_first_DATA_packet)
+    {
+        send_CONACC(socket_fd, client_address, client_address_len, conn->session_id);
+    }
+    else
+    {
+        send_ACC(socket_fd, client_address, client_address_len, conn->session_id, curr_package_id);
+    }
+    return SUCCESS;
+}
+
+// Once we establish connection with client we need to ignore other CONN packets
+// sent by him and also DATA packets with package_id less than curr_id, since we
+// could be interrupted while talking to him and he might send a few the same 
+// DATA packets using retransmission.
+// in UDPR we need to know the address of client who sent us conn, thus we need
+// to have two additional function parameters that remember it.
+void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in *curr_client_addr, socklen_t curr_client_addr_len)
+{
+    const uint64_t bytes_to_receive = conn->nbr_of_bytes_to_be_sent;
+    uint64_t bytes_recvd = 0;
+    uint64_t curr_package_id = 0;
+    int nbr_of_retransmits = 0;
+    bool is_first_DATA_packet = true;
+    static struct sockaddr_in client_address;
+    static socklen_t client_address_len = (socklen_t)sizeof(client_address);
+
+    while (bytes_recvd < bytes_to_receive)
+    {
+        printf("waiting for packet [%lu]\n", curr_package_id);
+        ssize_t read_bytes; 
+
+        int read_ret_val = read_data_to_buffer(socket_fd, buff, 
+                                                 RECEIVE_BUFFOR_SIZE,
+                                                 &client_address,
+                                                 &client_address_len,
+                                                 &read_bytes);
+
+        // No matter whether timeout or we read <= bytes we do the retransmit
+        if (read_ret_val == TIMEOUT_ERROR || read_ret_val == ERROR)
+        {
+            // if do retransmission is not eq SUCCESS this means that 
+            // nbr_of_retransmits is greater than MAX_RETRANSMITS so we end 
+            // connection. Since read_data_to_buff was unsuccessful 
+            // client_address and client_address_len variables are uninitialized
+            // thus we need to remember addres of client who sent CONN to us in
+            // function parameter
+            if (do_retransmission(socket_fd, curr_client_addr, curr_client_addr_len, conn, is_first_DATA_packet, 
+            &nbr_of_retransmits, curr_package_id) != SUCCESS)
+            {
+                return;
+            }
+            continue;
+        }
+
+        // If we succeded getting data into buffer we now need to check this 
+        // data
+        DATA_INFO_t data_info;
+        int ret_val = check_if_correct_DATA_packet(buff, read_bytes, conn,
+                                &data_info, curr_package_id);
+
+        if (ret_val == WRONG_SESSION_ID) 
+        {
+            // This means that somebody else sent us some data since it has 
+            // wrong session id (We assume that session id is unique), thus we
+            // dont want to stop receiving data from our client so we wait for
+            // another package, and send CONRJT to client who sent wrong one.
+            // We also dont do the retransmission since data from our client 
+            // might wait for us in queue
+            send_CONRJT(socket_fd, &client_address, client_address_len,
+                        conn->session_id);
+            continue;
+        }
+        else if (ret_val == WRONG_PACKAGE_ID)
+        {
+            // If we get data with correct session id (this means its from our 
+            // client) and if data package has wrong id we check if this id is
+            // less than current id we want, if it is we do the retransmission
+            // if not we send RJT because data was send in wrong order.
+            if (data_info.package_id < curr_package_id)
+            {
+                if (do_retransmission(socket_fd, client_address, client_address_len, conn, is_first_DATA_packet, 
+                &nbr_of_retransmits, curr_package_id) != SUCCESS)
+                {
+                    return;
+                }
+            }
+            else
+            {
+                // Our client sent package with wrong data, 
+                send_RJT(socket_fd, &client_address, client_address_len,
+                        conn->session_id, data_info.package_id);
+
+                return;
+            }
+            continue; 
+        }
+        else if (ret_val != SUCCESS)
+        {
+            send_RJT(socket_fd, &client_address, client_address_len,
+                    conn->session_id, data_info.package_id);
+
+            return;
+        }
+
+        // We got correct DATA packet so we send ACC to client with its id
+        send_ACC(socket_fd, client_address, client_address_len, conn->session_id, curr_package_id);
+
+        is_first_DATA_packet = false;
+        curr_package_id++;
+        bytes_recvd += data_info.nbr_of_bytes_in_packet;
+
+        print_data_to_stdout(buff + sizeof(data_info), data_info.package_id, data_info.nbr_of_bytes_in_packet);
+
+        printf("bytes recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
+    }
 }
 
 void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
@@ -341,6 +466,8 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
                 /* code */
                 break;
             case UDPR_PROTOCOL:
+                printf("UDPR server will be receiving data from client\n");
+                UDPR_data_receive(socket_fd, buff, &conn, client_address, client_address_len);
                 break;
             default:
                 make_error_msg(__FUNCTION__, " - unknown protocol type");
