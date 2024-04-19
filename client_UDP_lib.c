@@ -61,6 +61,65 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
     return SUCCESS;
 }
 
+int UDP_client_CONN_handler(int socket_fd, struct sockaddr_in *server_address, socklen_t server_address_len, uint64_t session_id, uint64_t occupied_size)
+{
+    CONN conn;
+
+    init_CONN(&conn, session_id, UDP_PROTOCOL, occupied_size);
+
+    printf("Sending conn package \n");
+    if (sendto_wrapper(socket_fd, server_address, server_address_len,
+                   &conn, sizeof(conn), __FUNCTION__) != SUCCESS)
+    {
+        return ERROR;
+    }
+    return SUCCESS;
+}
+
+
+int UDP_client_CONACC_handler(int socket_fd, char *response_buffer, 
+    uint64_t session_id)
+{
+    memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
+
+    ssize_t received_length;
+    int wait_ret_val = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length);
+
+    if (wait_ret_val != SUCCESS)
+    {
+        return ERROR;
+    }
+
+    printf("Got response, now casting it\n");
+
+    CONACC conacc;
+
+    printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc), (size_t)received_length);
+    cast_buff_to(&conacc, sizeof(conacc), response_buffer, (size_t)received_length);
+
+    ntoh_CONACC(&conacc);
+    // we should also check if session id is correct, to find out whether
+    // correct server sent us conacc
+    if (conacc.package_type_id != CONACC_ID)
+    {
+        make_error_msg(__FUNCTION__, " - rcvd package type id is not CONACC");
+        return ERROR;
+    }
+    if (conacc.session_id != session_id)
+    {
+
+        make_error_msg(__FUNCTION__, " - received CONACC has wrong session id");
+        return ERROR;
+    }
+    if (received_length != sizeof(conacc))
+    {
+        make_error_msg(__FUNCTION__, " - first two values of conacc were correct, but size of received message is not equal to size of CONACC packet");
+        return ERROR;
+    }
+    return SUCCESS;
+}
+
+
 int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
                          socklen_t server_address_len, my_vec_t *vec, uint64_t session_id)
 {
@@ -107,52 +166,66 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
         if (sendto_wrapper(socket_fd, server_address, server_address_len,
                            &data, sizeof(DATA_INFO_t) + be32toh(data.nbr_of_bytes_in_packet), __FUNCTION__) != SUCCESS)
         {
-            printf("WTF - udp client send data\n");
+            printf("- udp client send data\n");
             return ERROR;
         }
     }
     return SUCCESS;
 }
 
-void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id)
+int UDP_client_RCVD_handler(int socket_fd, char *response_buffer, 
+    uint64_t session_id)
 {
-    CONN conn;
+    memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
 
-    init_CONN(&conn, session_id, UDP_PROTOCOL, vec->occupied_size);
-    // init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
-
-    socklen_t server_address_len = (socklen_t)sizeof(*server_address);
-
-    printf("Sending conn package \n");
-    sendto_wrapper(socket_fd, server_address, server_address_len,
-                   &conn, sizeof(conn), __FUNCTION__);
-
-    // Now we wait for server response - whether conacc or conrjt
-    static char response_buffer[RESPONSE_BUFF_SIZE];
+    printf("Waiting for server rcvd\n");
     ssize_t received_length;
     int wait_ret_val = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length);
 
-    if (wait_ret_val == ERROR)
+    if (wait_ret_val != SUCCESS)
+    {
+        return ERROR;
+    }
+
+    RCVD rcvd;
+    cast_buff_to(&rcvd, sizeof(rcvd), response_buffer, (size_t)received_length);
+    ntoh_RCVD(&rcvd);
+
+    if (rcvd.package_type_id != RCVD_ID)
+    {
+        make_error_msg(__FUNCTION__, " - received package type id is not RCVD");
+        return ERROR;
+    }
+    if (rcvd.session_id != session_id)
+    {
+        make_error_msg(__FUNCTION__, " - received package type is RCVD but with wrong session id");
+        return ERROR;
+    }
+    if (received_length != sizeof(rcvd))
+    {
+
+        make_error_msg(__FUNCTION__, " - first two values of RCVD were correct, but size of received message is not equal to size of RCVD packet");
+        return ERROR;
+    }
+    return SUCCESS;
+}
+
+
+void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id)
+{
+    static char response_buffer[RESPONSE_BUFF_SIZE];
+    socklen_t server_address_len = (socklen_t)sizeof(*server_address);
+
+    if (UDP_client_CONN_handler(socket_fd, server_address, server_address_len, session_id, vec->occupied_size) != SUCCESS)
     {
         return;
     }
-    else if (wait_ret_val == TIMEOUT_ERROR)
+
+    // Now we wait for server response - whether conacc or conrjt, there might be a possibility that different server will send us message, we need to ignore it thus loop will be needed
+    int ret_val = UDP_client_CONACC_handler(socket_fd, response_buffer, session_id);
+
+    if (ret_val != SUCCESS)
         return;
-
-    printf("Got response, now casting it\n");
-
-    CONACC conacc;
-
-    printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc), (size_t)received_length);
-    cast_buff_to(&conacc, sizeof(conacc), response_buffer, (size_t)received_length);
-
-    // we should also check if session id is correct, to find out whether
-    // correct server sent us conacc
-    if (conacc.package_type_id != CONACC_ID)
-    {
-        make_error_msg(__FUNCTION__, " - rcvd package type id is not CONACC");
-        return;
-    }
 
     printf("Sending data\n");
     if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
@@ -161,22 +234,8 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     }
 
     // Now we wait for rcvd
-    printf("Waiting for verver rcvd\n");
-    wait_ret_val = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length);
-
-    if (wait_ret_val != SUCCESS)
-    {
+    if (UDP_client_RCVD_handler(socket_fd, response_buffer, session_id) != SUCCESS)
         return;
-    }
-
-    RCVD rcvd;
-    cast_buff_to(&rcvd, sizeof(rcvd), response_buffer, (size_t)received_length);
-
-    if (rcvd.package_type_id != RCVD_ID)
-    {
-        make_error_msg(__FUNCTION__, " - rcvd package type id is not RCVD");
-        return;
-    }
 }
 
 // - Function tries to establish connection with server by sending CONN and 
@@ -245,14 +304,7 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, RCVD *rcvd, ssiz
             return ERROR;
         }
 
-        if (cast_buff_to(rcvd, sizeof(*rcvd), response_buff, *received_length) == ERROR)
-        {
-            // We got packet with wrong size, thus we end connection
-            // Here we NEED TO CHECK IF WE GOT THIS PACKAGE FROM OUR SERVER
-            // NOT FROM SOMEONE ELSE!!!!!!
-            return ERROR;
-        }
-
+        cast_buff_to(rcvd, sizeof(*rcvd), response_buff, *received_length);
         ntoh_RCVD(rcvd);
 
         // We could get ACC package instead of RCVD, if so we ignore it if its
@@ -264,9 +316,8 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, RCVD *rcvd, ssiz
             {
                 
                 ACC acc;
-                if (cast_buff_to(&acc, sizeof(acc), response_buff, *received_length) == ERROR)
-                    return ERROR;
 
+                cast_buff_to(&acc, sizeof(acc), response_buff, *received_length); 
                 ntoh_ACC(&acc);
 
                 if (acc.package_id >= curr_package_id)
