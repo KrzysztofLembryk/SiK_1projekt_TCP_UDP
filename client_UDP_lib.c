@@ -222,9 +222,9 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     }
 
     // Now we wait for server response - whether conacc or conrjt, there might be a possibility that different server will send us message, we need to ignore it thus loop will be needed
-    int ret_val = UDP_client_CONACC_handler(socket_fd, response_buffer, session_id);
+    int conacc_ret_val = UDP_client_CONACC_handler(socket_fd, response_buffer, session_id);
 
-    if (ret_val != SUCCESS)
+    if (conacc_ret_val != SUCCESS)
         return;
 
     printf("Sending data\n");
@@ -246,7 +246,6 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
                                 struct sockaddr_in *server_address, 
                                 socklen_t server_address_len,
                                 uint64_t session_id,
-                                CONACC *conacc, 
                                 uint64_t occupied_size)
 {
     ssize_t received_length;
@@ -270,9 +269,12 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
         return ERROR;
     }
 
+    CONACC conacc;
+
     printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(*conacc), (size_t)received_length);
+
     cast_buff_to(conacc, sizeof(*conacc), response_buffer, 
-    (size_t)received_length);
+                                                (size_t)received_length);
     ntoh_CONACC(conacc);
 
     if (conacc->package_type_id != CONACC_ID || conacc->session_id != session_id)
@@ -471,14 +473,13 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     int init_ret_val;
     uint64_t last_package_idx = 0;
 
-    CONACC conacc;
     // INITIALIZATION OF CONNECTION
     do
     {
         memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
 
         init_ret_val = UDPR_client_init_connection(socket_fd, response_buffer, server_address, server_address_len, session_id, 
-        &conacc, vec->occupied_size);
+        vec->occupied_size);
 
         if (init_ret_val != SUCCESS)
         {
