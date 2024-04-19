@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
             UDP_client_handler(socket_fd, &server_address, vec, session_id);
             break;
         case UDPR:
-            UDP_client_handler(socket_fd, &server_address, vec, session_id);
+            UDPR_client_handler(socket_fd, &server_address, vec, session_id);
             break;
         default:
             break;

@@ -187,10 +187,10 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
                                 struct sockaddr_in *server_address, 
                                 socklen_t server_address_len,
                                 uint64_t session_id,
-                                ssize_t *received_length,
                                 CONACC *conacc, 
                                 uint64_t occupied_size)
 {
+    ssize_t received_length;
     CONN conn;
     init_CONN(&conn, session_id, UDPR_PROTOCOL, occupied_size);
 
@@ -206,20 +206,21 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
         return ERROR;
     }
 
-    if (wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, received_length) != SUCCESS)
+    if (wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length) != SUCCESS)
     {
         return ERROR;
     }
 
     printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(*conacc), (size_t)received_length);
-    cast_buff_to(&conacc, sizeof(*conacc), response_buffer, (size_t)received_length);
+    cast_buff_to(conacc, sizeof(*conacc), response_buffer, 
+    (size_t)received_length);
     ntoh_CONACC(conacc);
 
     if (conacc->package_type_id != CONACC_ID || conacc->session_id != session_id)
     {
         return ERROR;
     }
-
+    printf("Succes\n");
     return SUCCESS;
 }
 
@@ -420,7 +421,6 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     int init_ret_val;
     uint64_t last_package_idx = 0;
 
-    printf("Got response, now casting it\n");
     CONACC conacc;
     // INITIALIZATION OF CONNECTION
     do
@@ -428,7 +428,7 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
         memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
 
         init_ret_val = UDPR_client_init_connection(socket_fd, response_buffer, server_address, server_address_len, session_id, 
-        &received_length, &conacc, vec->occupied_size);
+        &conacc, vec->occupied_size);
 
         if (init_ret_val != SUCCESS)
         {
