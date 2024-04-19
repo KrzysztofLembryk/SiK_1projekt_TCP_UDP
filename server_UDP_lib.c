@@ -338,7 +338,7 @@ int do_retransmission(int socket_fd, struct sockaddr_in *client_address, socklen
 // DATA packets using retransmission.
 // in UDPR we need to know the address of client who sent us conn, thus we need
 // to have two additional function parameters that remember it.
-void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in *curr_client_addr, socklen_t curr_client_addr_len)
+void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in *correct_client_addr, socklen_t correct_client_addr_len)
 {
     const uint64_t bytes_to_receive = conn->nbr_of_bytes_to_be_sent;
     uint64_t bytes_recvd = 0;
@@ -359,18 +359,13 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
                                                  &client_address_len,
                                                  &read_bytes);
 
-        // No matter whether timeout or we read <= bytes we do the retransmit
         if (read_ret_val == ERROR)
         {
             return;
         }
         if (read_ret_val == TIMEOUT_ERROR)
         {
-            // connection. Since read_data_to_buff was unsuccessful 
-            // client_address and client_address_len variables are uninitialized
-            // thus we need to remember addres of client who sent CONN to us in
-            // function parameter
-            if (do_retransmission(socket_fd, curr_client_addr, curr_client_addr_len, conn, is_first_DATA_packet, 
+            if (do_retransmission(socket_fd, correct_client_addr, correct_client_addr_len, conn, is_first_DATA_packet, 
             &nbr_of_retransmits, curr_package_id) != SUCCESS)
             {
                 // Only happens when we exceeded nbr of retransmits
@@ -385,22 +380,11 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         int ret_val = check_if_correct_DATA_packet(buff, read_bytes, conn,
                                 &data_info, curr_package_id);
 
-        if (ret_val == WRONG_SESSION_ID) 
-        {
-            // This means that somebody else sent us some data since it has 
-            // wrong session id (We assume that session id is unique), thus we
-            // dont want to stop receiving data from our client so we wait for
-            // another package, and send CONRJT to client who sent wrong one.
-            // We also dont do the retransmission since data from our client 
-            // might wait for us in queue
-            send_CONRJT(socket_fd, &client_address, client_address_len,
-                        conn->session_id);
-            continue;
-        }
-        else if (ret_val == WRONG_PACKAGE_TYPE_ID)
+        if (ret_val == WRONG_PACKAGE_TYPE_ID)
         {
             if (data_info.package_type_id == CONN_ID)
             {
+                // We have connection established so we ignore clients CONN msgs
                 continue;
             }
             else
@@ -413,6 +397,11 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
                 return;
             }
         }
+        else if (ret_val == WRONG_SESSION_ID)
+        {
+            send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
+            return;
+        }
         else if (ret_val == WRONG_PACKAGE_ID)
         {
             // If we get data with correct session id (this means its from our 
@@ -421,11 +410,13 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
             // if not we send RJT because data was send in wrong order.
             if (data_info.package_id < curr_package_id)
             {
-                if (do_retransmission(socket_fd, &client_address, client_address_len, conn, is_first_DATA_packet, 
-                &nbr_of_retransmits, curr_package_id) != SUCCESS)
-                {
-                    return;
-                }
+                // if (do_retransmission(socket_fd, &client_address, client_address_len, conn, is_first_DATA_packet, 
+                // &nbr_of_retransmits, curr_package_id) != SUCCESS)
+                // {
+                //     return;
+                // }
+                // if we got data with package_id less than current we ignore it
+                continue;
             }
             else
             {
@@ -435,7 +426,6 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
 
                 return;
             }
-            continue; 
         }
         else if (ret_val != SUCCESS)
         {
@@ -486,7 +476,9 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
                                                         RECEIVE_BUFFOR_SIZE,
                                                         &client_address,
                                                         &client_address_len,
-                                                        &read_bytes);
+                                                        &read_bytes,
+                                                        &client_address,
+                                                        0);
         if (read_ret_val < 0)
             continue;
 
