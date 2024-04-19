@@ -503,6 +503,10 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
             continue;
         }
 
+        char const *client_ip = inet_ntoa(client_address.sin_addr);
+        uint16_t client_port = ntohs(client_address.sin_port);
+        printf("|||||- accepted connection from %s:%" PRIu16 " -|||||\n", client_ip, client_port);
+
         // Only after establishing new connection we set timeout for our socket
         // so that we won't wait eternity for msg from client, since he may not
         // send it

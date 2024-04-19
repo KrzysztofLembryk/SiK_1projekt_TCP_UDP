@@ -36,7 +36,6 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
 
 int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length)
 {
-    printf("waiting for server repsonse\n");
     memset(response_buffer, 0, buff_size);
 
     struct sockaddr_in receive_address;
