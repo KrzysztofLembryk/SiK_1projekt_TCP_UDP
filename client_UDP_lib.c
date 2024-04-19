@@ -281,7 +281,7 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
                                                 (size_t)received_length);
     ntoh_CONACC(&conacc);
 
-    if (conacc->package_type_id != CONACC_ID || conacc->session_id != session_id)
+    if (conacc.package_type_id != CONACC_ID || conacc.session_id != session_id)
     {
         return ERROR;
     }
@@ -533,7 +533,7 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     }
 
     // Now we wait for rcvd, we should ignore any acc we got
-    if (UDPR_client_handle_RCVD(socket_fd, response_buffer, received_length, last_package_idx, session_id) != SUCCESS)
+    if (UDPR_client_handle_RCVD(socket_fd, response_buffer, &received_length, last_package_idx, session_id) != SUCCESS)
     {
         make_error_msg(__FUNCTION__, " - client did not receive RCVD msg from server");
         return;

@@ -16,6 +16,10 @@
 #include "err.h"
 #include "protconst.h"
 
+// forward declaration of send_CONRJT, since it's used in read_data_to_buffer
+int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
+                socklen_t client_address_len, uint64_t session_id);
+
 // - Function reads maximally RECEIVE_BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
 // - If recvfrom read <= 0 bytes func returns -1, function checks if timeout
@@ -61,7 +65,7 @@ int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
         {
             // If we got connection not from our client, we send CONRJT and wait
             // for another msg
-            send_CONRJT(socket_fd, client_address, client_address_len, session_id);
+            send_CONRJT(socket_fd, client_address, *client_address_len, session_id);
             continue;
         }
 
@@ -241,7 +245,7 @@ int check_if_correct_DATA_packet(char *buff,
 }
 
 void UDP_data_receive(int socket_fd, char *buff, CONN *conn, 
-    struct sockaddr_in *curr_client_addr, socklen_t curr_client_addr_len)
+    struct sockaddr_in *curr_client_addr)
 {
     const uint64_t bytes_to_receive = conn->nbr_of_bytes_to_be_sent;
     uint64_t bytes_recvd = 0;
@@ -357,7 +361,9 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
                                                  RECEIVE_BUFFOR_SIZE,
                                                  &client_address,
                                                  &client_address_len,
-                                                 &read_bytes);
+                                                 &read_bytes,
+                                                 correct_client_addr,
+                                                 conn->session_id);
 
         if (read_ret_val == ERROR)
         {
@@ -507,7 +513,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         {
             case UDP_PROTOCOL:
                 printf("Will be receiving data from client\n");
-                UDP_data_receive(socket_fd, buff, &conn, &client_address, client_address_len);
+                UDP_data_receive(socket_fd, buff, &conn, &client_address);
                 break;
             case UDPR_PROTOCOL:
                 printf("UDPR server will be receiving data from client\n");
