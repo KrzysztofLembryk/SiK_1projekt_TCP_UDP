@@ -221,6 +221,48 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
     return SUCCESS;
 }
 
+int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, RCVD *rcvd, ssize_t *received_length, int *nbr_of_retransmits, uint64_t curr_package_id, uint64_t session_id)
+{
+    // We wait for server response
+    do
+    {
+        memset(response_buff, 0, RESPONSE_BUFF_SIZE);
+        int wait_ret_val = wait_for_server_response(socket_fd, response_buff, RESPONSE_BUFF_SIZE, received_length);
+
+        if (wait_ret_val == TIMEOUT_ERROR)
+        {
+            *nbr_of_retransmits++;
+            if (*nbr_of_retransmits > MAX_RETRANSMITS)
+                return ERROR;
+            return RETRANSMISSION;
+        }
+        else if (wait_ret_val == ERROR)
+        {
+            // Recvfrom was < 0 
+            return ERROR;
+        }
+
+        if (cast_buff_to(rcvd, sizeof(*rcvd), response_buff, *received_length) == ERROR)
+        {
+            // We got packet with wrong size, thus we end connection
+            // Here we NEED TO CHECK IF WE GOT THIS PACKAGE FROM OUR SERVER
+            // NOT FROM SOMEONE ELSE!!!!!!
+            return ERROR;
+        }
+
+        ntoh_RCVD(rcvd);
+
+        if (rcvd->package_type_id != RCVD_ID)
+            return ERROR;
+        if (rcvd->session_id != session_id)
+            return ERROR;
+
+        return SUCCESS;
+    } while (true);
+
+    return SUCCESS;
+}
+
 int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t *received_length, int *nbr_of_retransmits, uint64_t curr_package_id, uint64_t session_id)
 {
     // We wait for server response
@@ -321,33 +363,23 @@ int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
         if (sendto_wrapper(socket_fd, server_address, server_address_len,
                            &data, sizeof(DATA_INFO_t) + be32toh(data.nbr_of_bytes_in_packet), __FUNCTION__) != SUCCESS)
         {
-            printf("- udp client send data\n");
+            make_error_msg(__FUNCTION__, " - sendto_wrapper error");
             return ERROR;
         }
 
         // Here might be a few CONACC from server, we want to ignore them thus
         // we need a loop
-        bool do_retransmission = false;
-        int correct_msg;
         ACC acc;
-        int wait_for_acc_ret_val = UDPR_client_handle_ACC(socket_fd, response_buff, &acc, &received_length, nbr_of_retransmits, curr_package_id, session_id);
-        do
-        {
-            int wait_ret_val = wait_for_server_response(socket_fd, response_buff, RESPONSE_BUFF_SIZE, &received_length);
+        int acc_ret_val = UDPR_client_handle_ACC(socket_fd, response_buff, 
+        &acc, &received_length, nbr_of_retransmits, curr_package_id, session_id);
 
-            if (wait_ret_val == TIMEOUT_ERROR)
-            {
-                *nbr_of_retransmits++;
-                if (*nbr_of_retransmits > MAX_RETRANSMITS)
-                    return;
-                do_retransmission = true;
-                break;
-            }
-        } while (/* condition */);
-
-        if (do_retransmission) 
+        if (acc_ret_val == ERROR)
+            return ERROR;
+        else if (acc_ret_val == RETRANSMISSION)
             continue;
 
+        // Otherwise we got correct ACC thus we can increase curr_package_id
+        // and start_cpt_pos to be able to send next data package
         curr_package_id++;
         bytes_sent += shift;
         bytes_left -= shift;
@@ -392,8 +424,12 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     
 
     printf("Sending data\n");
+    if (UDPR_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id, &nbr_of_retransmits) != SUCCESS)
+    {
+        return;
+    }
 
-    // Now we wait for rcvd
+    // Now we wait for rcvd, we should ignore any acc we got
     printf("Waiting for verver rcvd\n");
     received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
 

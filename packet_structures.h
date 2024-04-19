@@ -130,6 +130,8 @@ void ntoh_ACC(ACC *acc);
 
 void ntoh_RJT(RJT *rjt);
 
+void ntoh_RCVD(RCVD *rcvd);
+
 // -----CAST FUNCTIONS-----
 
 int cast_buff_to(void *ptr, size_t ptr_size, char *buff, size_t bytes_in_buff);

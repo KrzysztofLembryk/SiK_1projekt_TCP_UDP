@@ -177,6 +177,12 @@ void ntoh_RJT(RJT *rjt)
     rjt->session_id = be64toh(rjt->session_id);
     rjt->package_id = be64toh(rjt->package_id);
 }
+
+void ntoh_RCVD(RCVD *rcvd)
+{
+    rcvd->session_id = be64toh(rcvd->session_id);
+}
+
 // -----CAST FUNCTIONS-----
 
 // Function casts bytes_in_buffer size data stored in buffer, to given void *struct_ptr
