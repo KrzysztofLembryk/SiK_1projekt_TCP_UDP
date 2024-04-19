@@ -444,7 +444,9 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     
     // Connection with server was established succesfully, now we will be 
     // sending our data
-    printf("Sending data\n");
+    printf("Sending data\n"); 
+    sleep(11);
+    printf("Po sleep\n");
     if (UDPR_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id, &nbr_of_retransmits) != SUCCESS)
     {
         return;
