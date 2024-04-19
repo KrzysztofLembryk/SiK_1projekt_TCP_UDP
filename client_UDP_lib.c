@@ -231,10 +231,10 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, RCVD *rcvd, ssiz
 
         if (wait_ret_val == TIMEOUT_ERROR)
         {
-            *nbr_of_retransmits++;
-            if (*nbr_of_retransmits > MAX_RETRANSMITS)
-                return ERROR;
-            return RETRANSMISSION;
+            // We wait for rcvd, if we didnt get it in MAX_WAIT we get error
+            // since we cannot do the retransmission anymore since we already
+            // sent all data
+            return ERROR;
         }
         else if (wait_ret_val == ERROR)
         {
@@ -252,6 +252,27 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, RCVD *rcvd, ssiz
 
         ntoh_RCVD(rcvd);
 
+        // We could get ACC package instead of RCVD, if so we ignore it if its
+        // correct ACC package, if not we get error and end connection since 
+        // such behaviour is against protocol
+        if (rcvd->package_type_id == ACC_ID )
+        {
+            if (rcvd->session_id == session_id)
+            {
+                
+                ACC acc;
+                if (cast_buff_to(&acc, sizeof(acc), response_buff, *received_length) == ERROR)
+                    return ERROR;
+
+                ntoh_ACC(&acc);
+
+                if (acc.package_id >= curr_package_id)
+                    return ERROR;
+                continue;
+            }
+            else
+                return ERROR;
+        }
         if (rcvd->package_type_id != RCVD_ID)
             return ERROR;
         if (rcvd->session_id != session_id)
@@ -395,6 +416,7 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     static char response_buffer[RESPONSE_BUFF_SIZE];
     ssize_t received_length;
     int init_ret_val;
+    uint64_t last_package_idx = 0;
 
     printf("Got response, now casting it\n");
     CONACC conacc;
@@ -420,9 +442,6 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     
     // Connection with server was established succesfully, now we will be 
     // sending our data
-
-    
-
     printf("Sending data\n");
     if (UDPR_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id, &nbr_of_retransmits) != SUCCESS)
     {
@@ -430,22 +449,10 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     }
 
     // Now we wait for rcvd, we should ignore any acc we got
-    printf("Waiting for verver rcvd\n");
-    received_length = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE);
-
-    if (received_length == ERROR)
-    {
-        return;
-    }
-    else if (received_length == TIMEOUT_ERROR)
-        return;
-
     RCVD rcvd;
-    cast_buff_to(&rcvd, sizeof(rcvd), response_buffer, (size_t)received_length);
-
-    if (rcvd.package_type_id != RCVD_ID)
+    if (UDPR_client_handle_RCVD(socket_fd, response_buffer, &rcvd, &received_length, &nbr_of_retransmits, last_package_idx, session_id) != SUCCESS)
     {
-        make_error_msg(__FUNCTION__, " - rcvd package type id is not RCVD");
+        make_error_msg(__FUNCTION__, " - client did not receive RCVD msg from server");
         return;
     }
 }
