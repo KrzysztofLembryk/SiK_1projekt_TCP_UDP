@@ -285,7 +285,7 @@ int do_retransmission(int socket_fd, struct sockaddr_in *client_address, socklen
 {
 
     (*nbr_of_retransmits)++;
-    if (nbr_of_retransmits > MAX_RETRANSMITS)
+    if (*nbr_of_retransmits > MAX_RETRANSMITS)
     {
         make_error_msg(__FUNCTION__, " - nbr of available retransmits have been reached");
         return ERROR;
@@ -389,7 +389,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
             // if not we send RJT because data was send in wrong order.
             if (data_info.package_id < curr_package_id)
             {
-                if (do_retransmission(socket_fd, client_address, client_address_len, conn, is_first_DATA_packet, 
+                if (do_retransmission(socket_fd, &client_address, client_address_len, conn, is_first_DATA_packet, 
                 &nbr_of_retransmits, curr_package_id) != SUCCESS)
                 {
                     return;
@@ -414,7 +414,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         }
 
         // We got correct DATA packet so we send ACC to client with its id
-        send_ACC(socket_fd, client_address, client_address_len, conn->session_id, curr_package_id);
+        send_ACC(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
 
         is_first_DATA_packet = false;
         curr_package_id++;
@@ -487,7 +487,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
                 break;
             case UDPR_PROTOCOL:
                 printf("UDPR server will be receiving data from client\n");
-                UDPR_data_receive(socket_fd, buff, &conn, client_address, client_address_len);
+                UDPR_data_receive(socket_fd, buff, &conn, &client_address, client_address_len);
                 break;
             default:
                 make_error_msg(__FUNCTION__, " - unknown protocol type");

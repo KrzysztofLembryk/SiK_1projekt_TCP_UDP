@@ -1,6 +1,7 @@
 #include <sys/socket.h>
 #include <endian.h>
 #include <errno.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include "client_UDP_lib.h"
 #include "packet_structures.h"
@@ -44,7 +45,7 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
     *received_length = recvfrom(socket_fd, response_buffer, buff_size, RECEIVE_FLAGS, (struct sockaddr *)&receive_address,
                                        (socklen_t *)&server_address_len);
 
-    if (received_length < 0)
+    if (*received_length < 0)
     {
         if (errno == EAGAIN)
         {
@@ -113,7 +114,7 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
-void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, communication_type comm_type)
+void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id)
 {
     CONN conn;
 
@@ -187,10 +188,11 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
                                 socklen_t server_address_len,
                                 uint64_t session_id,
                                 ssize_t *received_length,
-                                CONACC *conacc)
+                                CONACC *conacc, 
+                                uint64_t occupied_size)
 {
     CONN conn;
-    init_CONN(&conn, session_id, UDPR_PROTOCOL, vec->occupied_size);
+    init_CONN(&conn, session_id, UDPR_PROTOCOL, occupied_size);
 
     printf("Sending conn package \n");
     if (sendto_wrapper(socket_fd, server_address, server_address_len,
@@ -221,7 +223,7 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
     return SUCCESS;
 }
 
-int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, RCVD *rcvd, ssize_t *received_length, int *nbr_of_retransmits, uint64_t curr_package_id, uint64_t session_id)
+int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, RCVD *rcvd, ssize_t *received_length, uint64_t curr_package_id, uint64_t session_id)
 {
     // We wait for server response
     do
@@ -294,8 +296,8 @@ int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t
 
         if (wait_ret_val == TIMEOUT_ERROR)
         {
-            *nbr_of_retransmits++;
-            if (*nbr_of_retransmits > MAX_RETRANSMITS)
+            (*nbr_of_retransmits)++;
+            if ((*nbr_of_retransmits) > MAX_RETRANSMITS)
                 return ERROR;
             return RETRANSMISSION;
         }
@@ -409,7 +411,7 @@ int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
-void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, communication_type comm_type)
+void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id)
 {
     socklen_t server_address_len = (socklen_t)sizeof(*server_address);
     int nbr_of_retransmits = 0;
@@ -426,7 +428,7 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
         memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
 
         init_ret_val = UDPR_client_init_connection(socket_fd, response_buffer, server_address, server_address_len, session_id, 
-        &received_length, &conacc);
+        &received_length, &conacc, vec->occupied_size);
 
         if (init_ret_val != SUCCESS)
         {
@@ -450,7 +452,7 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
 
     // Now we wait for rcvd, we should ignore any acc we got
     RCVD rcvd;
-    if (UDPR_client_handle_RCVD(socket_fd, response_buffer, &rcvd, &received_length, &nbr_of_retransmits, last_package_idx, session_id) != SUCCESS)
+    if (UDPR_client_handle_RCVD(socket_fd, response_buffer, &rcvd, &received_length, last_package_idx, session_id) != SUCCESS)
     {
         make_error_msg(__FUNCTION__, " - client did not receive RCVD msg from server");
         return;

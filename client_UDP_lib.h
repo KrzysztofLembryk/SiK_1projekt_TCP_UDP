@@ -5,8 +5,8 @@
 #include "my_vec.h"
 #include "helper_func.h"
 
-void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, communication_type comm_type);
+void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id);
 
-void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, communication_type comm_type);
+void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id);
 
 #endif

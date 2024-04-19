@@ -59,10 +59,10 @@ int main(int argc, char *argv[])
             TCP_client_handler(socket_fd, &server_address, vec, session_id);
             break; 
         case UDP:
-            UDP_client_handler(socket_fd, &server_address, vec, session_id, type_of_comm);
+            UDP_client_handler(socket_fd, &server_address, vec, session_id);
             break;
         case UDPR:
-            UDP_client_handler(socket_fd, &server_address, vec, session_id, type_of_comm);
+            UDP_client_handler(socket_fd, &server_address, vec, session_id);
             break;
         default:
             break;
