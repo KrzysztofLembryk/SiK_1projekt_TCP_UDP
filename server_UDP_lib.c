@@ -27,7 +27,6 @@ int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
                             socklen_t *client_address_len,
                             ssize_t *read_bytes,
                             struct sockaddr_in *correct_addr, 
-                            socklen_t correct_addr_len,
                             uint64_t session_id)
 {
     while(true)
@@ -259,16 +258,14 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
                                                  RECEIVE_BUFFOR_SIZE,
                                                  &client_address,
                                                  &client_address_len,
-                                                 &read_bytes);
+                                                 &read_bytes,
+                                                 curr_client_addr,
+                                                 conn->session_id);
 
-        if (read_ret_val == TIMEOUT_ERROR)
+        if (read_ret_val == TIMEOUT_ERROR || read_ret_val == ERROR)
         {
             // If read bytes <= 0 we end connection since we have some error
             // it could be timeout
-            return;
-        }
-        if (read_ret_val == ERROR)
-        {
             return;
         }
 
@@ -276,17 +273,17 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
         int ret_val = check_if_correct_DATA_packet(buff, read_bytes, conn,
                                 &data_info, curr_package_id);
 
-        if (ret_val == WRONG_SESSION_ID) 
-        {
-            // This means that somebody else sent us some data since it has 
-            // wrong session id (We assume that session id is unique), thus we
-            // dont want to stop receiving data from our client so we wait for
-            // another package, and send CONRJT to client who sent wrong one.
-            send_CONRJT(socket_fd, &client_address, client_address_len,
-                        conn->session_id);
-            continue;
-        }
-        else if (ret_val != SUCCESS)
+        // if (ret_val == WRONG_SESSION_ID) 
+        // {
+        //     // This means that somebody else sent us some data since it has 
+        //     // wrong session id (We assume that session id is unique), thus we
+        //     // dont want to stop receiving data from our client so we wait for
+        //     // another package, and send CONRJT to client who sent wrong one.
+        //     send_CONRJT(socket_fd, &client_address, client_address_len,
+        //                 conn->session_id);
+        //     continue;
+        // }
+        if (ret_val != SUCCESS)
         {
             // Our client sent package with wrong data so we end connection
             send_RJT(socket_fd, &client_address, client_address_len,
@@ -307,7 +304,10 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
     if (bytes_recvd == bytes_to_receive)
         send_RCVD(socket_fd, &client_address, client_address_len, conn->session_id);
     else
+    {
+        make_error_msg(__FUNCTION__, " - client sent too many bytes, bytes_recv > bytes_to_receive");
         send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
+    }
 }
 
 int do_retransmission(int socket_fd, struct sockaddr_in *client_address, socklen_t client_address_len, CONN *conn, bool is_first_DATA_packet, int *nbr_of_retransmits, uint64_t curr_package_id)
