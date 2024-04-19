@@ -18,45 +18,65 @@
 
 // - Function reads maximally RECEIVE_BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
-// - If recvfrom read <= 0 bytes func returns -1, otherwise nbr of bytes read
+// - If recvfrom read <= 0 bytes func returns -1, function checks if timeout
+// - Function checks if connection was established with correct_addr, if not
+// returns error 
 // - Function sets variables *client_address and client_addr_len
 int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
                             struct sockaddr_in *client_address,
                             socklen_t *client_address_len,
-                            ssize_t *read_bytes)
+                            ssize_t *read_bytes,
+                            struct sockaddr_in *correct_addr, 
+                            socklen_t correct_addr_len,
+                            uint64_t session_id)
 {
-    memset(buff, 0, buff_size);
-
-    // UDP gets data as datagrams that are stored in queue, so after we do
-    // recvfrom, we read whole datagram from queue, so if we dont have
-    // enough space in buffor part of data is lost. Thus first we will read
-    // whole datagram into buffer, then cast it on our structures i.e. CONN.
-    *read_bytes = recvfrom(socket_fd, buff, RECEIVE_BUFFOR_SIZE,
-                                  DEFAULT_FLAG,
-                                  (struct sockaddr *)client_address,
-                                  (socklen_t *)client_address_len);
-
-    if (*read_bytes < 0)
+    while(true)
     {
-        if (errno == EAGAIN) 
+        memset(buff, 0, buff_size);
+
+        // UDP gets data as datagrams that are stored in queue, so after we do
+        // recvfrom, we read whole datagram from queue, so if we dont have
+        // enough space in buffor part of data is lost. Thus first we will read
+        // whole datagram into buffer, then cast it on our structures i.e. CONN.
+        *read_bytes = recvfrom(socket_fd, buff, RECEIVE_BUFFOR_SIZE,
+                                    DEFAULT_FLAG,
+                                    (struct sockaddr *)client_address,
+                                    (socklen_t *)client_address_len);
+
+        if (*read_bytes < 0)
         {
-            make_error_msg(__FUNCTION__, " - timeout\n"); 
-            return TIMEOUT_ERROR;
+            if (errno == EAGAIN) 
+            {
+                make_error_msg(__FUNCTION__, " - timeout\n"); 
+                return TIMEOUT_ERROR;
+            }
+            else 
+            {
+                make_error_msg(__FUNCTION__, " - read_bytes < 0");
+                return ERROR;
+            }
         }
-        else 
+
+        if (client_address->sin_addr.s_addr != correct_addr->sin_addr.s_addr ||
+        client_address->sin_port != correct_addr->sin_port)
         {
-            make_error_msg(__FUNCTION__, " - read_bytes < 0");
+            // If we got connection not from our client, we send CONRJT and wait
+            // for another msg
+            send_CONRJT(socket_fd, client_address, client_address_len, session_id);
+            continue;
+        }
+
+        printf("READ BYTES: %zu\n", (size_t)*read_bytes);
+
+        if (*read_bytes == 0)
+        {
+            make_error_msg(__FUNCTION__, " - read_bytes == 0");
             return ERROR;
+
         }
+        return SUCCESS;
     }
 
-    printf("READ BYTES: %zu\n", (size_t)*read_bytes);
-
-    if (*read_bytes == 0)
-    {
-        make_error_msg(__FUNCTION__, " - read_bytes == 0");
-        return ERROR;
-    }
     return SUCCESS;
 }
 
@@ -83,12 +103,15 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
 
 int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {
-    if (cast_buff_to(conn, sizeof(*conn), buff, (size_t)read_bytes) != SUCCESS)
-        return ERROR;
-
+    cast_buff_to(conn, sizeof(*conn), buff, (size_t)read_bytes);
     ntoh_CONN(conn);
     print_CONN(conn);
 
+    if (read_bytes != sizeof(*conn))
+    {
+        make_error_msg(__FUNCTION__, " - received nbr of bytes that should be equal to sizeof CONN, are not");
+        return ERROR;
+    }
     if (conn->package_type_id != CONN_ID)
     {
         make_error_msg(__FUNCTION__, " - package type id is not CONN");
@@ -179,29 +202,34 @@ int check_if_correct_DATA_packet(char *buff,
                                  DATA_INFO_t *d_info,
                                  uint64_t curr_package_id)
 {
-    if (cast_buff_to(d_info, sizeof(*d_info), buff, (size_t)read_bytes) != SUCCESS)
-        return ERROR;
-
+    cast_buff_to(d_info, sizeof(*d_info), buff, (size_t)read_bytes);
     ntoh_DATA_INFO(d_info);
     printf("Printing info about received data:\n");
     print_DATA_INFO(d_info);
 
-    if (d_info->session_id != conn->session_id)
-    {
-        make_error_msg(__FUNCTION__, " - received DATA package has wrong session id");
-        return WRONG_SESSION_ID;
-    }
     if (d_info->package_type_id != DATA_ID)
     {
         make_error_msg(__FUNCTION__, " - received pacakge_type is not DATA");
         return WRONG_PACKAGE_TYPE_ID;
+    }
+    if (d_info->session_id != conn->session_id)
+    {
+        make_error_msg(__FUNCTION__, " - received DATA package has wrong session id");
+        return WRONG_SESSION_ID;
     }
     if (d_info->package_id != curr_package_id)
     {
         make_error_msg(__FUNCTION__, " - received DATA package has wrong package id");
         return WRONG_PACKAGE_ID;
     }
-    if (read_bytes - sizeof(*d_info) - d_info->nbr_of_bytes_in_packet != 0)
+
+    // DATA packet header might be correct, but client might send too much data
+    // or too little data than declared, so this means that received DATA packet
+    // is incorrect thus we end connection
+    long long diff = (long long)read_bytes - (long long)sizeof(*d_info) - 
+        (long long)d_info->nbr_of_bytes_in_packet;
+    
+    if (diff != 0)
     {
         printf("Read bytes: %zu\n", (size_t)read_bytes);
         printf("sizeof dinfo: %zu\n", sizeof(*d_info));
@@ -213,7 +241,8 @@ int check_if_correct_DATA_packet(char *buff,
     return SUCCESS;
 }
 
-void UDP_data_receive(int socket_fd, char *buff, CONN *conn)
+void UDP_data_receive(int socket_fd, char *buff, CONN *conn, 
+    struct sockaddr_in *curr_client_addr, socklen_t curr_client_addr_len)
 {
     const uint64_t bytes_to_receive = conn->nbr_of_bytes_to_be_sent;
     uint64_t bytes_recvd = 0;
@@ -331,10 +360,12 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
                                                  &read_bytes);
 
         // No matter whether timeout or we read <= bytes we do the retransmit
-        if (read_ret_val == TIMEOUT_ERROR || read_ret_val == ERROR)
+        if (read_ret_val == ERROR)
         {
-            // if do retransmission is not eq SUCCESS this means that 
-            // nbr_of_retransmits is greater than MAX_RETRANSMITS so we end 
+            return;
+        }
+        if (read_ret_val == TIMEOUT_ERROR)
+        {
             // connection. Since read_data_to_buff was unsuccessful 
             // client_address and client_address_len variables are uninitialized
             // thus we need to remember addres of client who sent CONN to us in
@@ -342,6 +373,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
             if (do_retransmission(socket_fd, curr_client_addr, curr_client_addr_len, conn, is_first_DATA_packet, 
             &nbr_of_retransmits, curr_package_id) != SUCCESS)
             {
+                // Only happens when we exceeded nbr of retransmits
                 return;
             }
             continue;
@@ -483,7 +515,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         {
             case UDP_PROTOCOL:
                 printf("Will be receiving data from client\n");
-                UDP_data_receive(socket_fd, buff, &conn);
+                UDP_data_receive(socket_fd, buff, &conn, &client_address, client_address_len);
                 break;
             case UDPR_PROTOCOL:
                 printf("UDPR server will be receiving data from client\n");
