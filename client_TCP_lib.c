@@ -26,12 +26,12 @@ int TCP_client_send_CONN(int socket_fd, CONN *conn)
 
     if (written_length < 0) 
     {
-        error("TCP_client_send_CONN - writen < 0");
+        make_error_msg(__FUNCTION__, " - writen < 0");
         return ERROR;
     }
     else if ((size_t) written_length != sizeof(*conn)) 
     {
-        error("TCP_client_send_CONN - incomplete writen");
+        make_error_msg(__FUNCTION__, " - write len not eq sizeof CONN");
         return ERROR;
     }
     return SUCCESS;
@@ -43,12 +43,12 @@ int send_data_wrapper(int socket_fd, DATA *data)
 
     if (written_length < 0) 
     {
-        error("send_DATA - writen < 0 \n");
+        make_error_msg(__FUNCTION__, " - writen < 0");
         return ERROR;
     }
     else if ((size_t) written_length != sizeof(*data)) 
     {
-        error("send_DATA - incomplete writen\n");
+        make_error_msg(__FUNCTION__, " - writen len not eq sizeof CONN");
         return ERROR;
     }
 
@@ -109,7 +109,7 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     if (connect(socket_fd, (struct sockaddr *) server_address,
                 (socklen_t) sizeof(*server_address)) < 0) 
     {
-        error("cannot connect to the server");
+        make_error_msg(__FUNCTION__, " - cannot connect to the server");
         return;
     }
 
@@ -128,7 +128,7 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         return;
 
     ntoh_CONACC(&conacc);
-
+    printf("ssleep(5)");
     sleep(5);
     printf("Sending data\n");
 

@@ -49,23 +49,23 @@ int readn_error_handler(ssize_t read_length, size_t data_size)
     {
         if (errno == EAGAIN) 
         {
-            error("readn - timeout\n"); 
+            make_error_msg(__FUNCTION__, " - readn timeout");
             return ERROR;
         } 
         else 
         {
-            error("readn");
+            make_error_msg(__FUNCTION__, " - readn < 0");
             return ERROR;
         }
     }
     else if (read_length == 0) 
     {
-        error("readn - connection closed read_len == 0\n");
+        make_error_msg(__FUNCTION__, " - connection closed read_len == 0");
         return ERROR;
     }
     else if ((size_t) read_length < data_size) 
     {
-        error("readn - connection closed without providing full data structure\n");
+        make_error_msg(__FUNCTION__, " - read nbr of bytes less than provided data size");
         return ERROR;
     }
 

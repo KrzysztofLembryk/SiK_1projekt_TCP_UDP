@@ -31,7 +31,7 @@ int TCP_wait_for_client(int socket_fd, int *c_fd,
     if (client_fd < 0) 
     {
         // close(socket_fd);
-        make_error_msg(__FUNCTION__, " - cleint_fd < 0");
+        make_error_msg(__FUNCTION__, " - client_fd < 0");
         return ERROR;
     }
     
@@ -48,7 +48,7 @@ int TCP_wait_for_client(int socket_fd, int *c_fd,
 // of type CONN, reads it, and checks whether read data has package_type equal
 // to CONN_ID if not, it returns -2. It also checks whether read data has 
 // correct protocol equal to TCP_PROTOCOL
-int TCP_conn_init_helper(CONN *conn, int client_fd)
+int TCP_handle_conn_init(CONN *conn, int client_fd)
 {
     ssize_t read_length = readn(client_fd, conn, sizeof (*conn));
 
@@ -57,38 +57,38 @@ int TCP_conn_init_helper(CONN *conn, int client_fd)
 
     if (conn->package_type_id != CONN_ID)
     {
-        error("connection closed - wrong package_type_id");
+        make_error_msg(__FUNCTION__, " - connection closed - wrong package_type_id");
         return ERROR;
     }
     if (conn->protocol_id != TCP_PROTOCOL)
     {
-        error("Wrong protocol");
+        make_error_msg(__FUNCTION__, " - wrong protocol type");
+        return ERROR;
+    }
+    if (read_length != sizeof(*conn))
+    {
+        make_error_msg(__FUNCTION__, " - nbr of bytes read not equal to sizeof CONN");
         return ERROR;
     }
     return SUCCESS;
 }
 
-int TCP_handle_conn_init(CONN *conn, int client_fd)
-{
-    return TCP_conn_init_helper(conn, client_fd);
-}
 
 int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
 {
     ssize_t written_length = writen(client_fd, conacc, sizeof (*conacc));
     if (written_length < 0 )
     {
-        error("TCP-send_CONACC-writen returned < 0\n");
+        make_error_msg(__FUNCTION__, " - writen returned < 0");
         return ERROR;
     }
     if ((size_t) written_length < sizeof (*conacc)) 
     {
-        error("TCP-send_CONACC_to_client-writen-wrote less than wanted size\n");
+        make_error_msg(__FUNCTION__, " - writen-wrote less than wanted size");
         return ERROR;
     }
     else 
     {
-        printf("CONACC reply sent\n");
         return SUCCESS;
     }
 }
@@ -103,8 +103,7 @@ int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
 // parameters are correct (i.e if we get consecutive package_id) without wasting
 // time and reading all data even though its incorrect
 int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo, 
-                            uint64_t session_id, uint64_t prev_packet_id, 
-                            bool *first_packet)
+                            uint64_t session_id, uint64_t curr_packet_id)
 {
     ssize_t read_length = readn(client_fd, data_metainfo, 
                                                     sizeof (*data_metainfo));
@@ -116,27 +115,17 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
 
     if(data_metainfo->package_type_id != DATA_ID)
     {
-        error("TCP_get_DATA_metainfo-wrong package type id\n");
+        make_error_msg(__FUNCTION__, " - wrong package type id");
         return ERROR;
     }
     if (data_metainfo->session_id != session_id)
     {
-        error("TCP_get_DATA_metainfo-wrong session id\n");
+        make_error_msg(__FUNCTION__, " - wrong session id");
         return ERROR;
     }
-    if (*first_packet)
+    if (data_metainfo->package_id != curr_packet_id)
     {
-        *first_packet = false;
-        // prev_packet_id = 0 here since its first packet
-        if (data_metainfo->package_id != prev_packet_id)
-        {
-            error("TCP_get_DATA_metainfo-wrong first packet doesnt have package id = 0\n");
-            return ERROR;
-        }
-    }
-    else if (data_metainfo->package_id != prev_packet_id + 1)
-    {
-        error("TCP_get_DATA_metainfo-wrong not consecutive packet id\n");
+        make_error_msg(__FUNCTION__, " - not consecutive packet id");
         return ERROR; 
     }
 
@@ -256,8 +245,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         static char buff[RECEIVE_BUFFOR_SIZE];
         uint64_t total_nbr_of_bytes_to_be_sent = conn.nbr_of_bytes_to_be_sent;
         uint64_t nbr_of_bytes_received = 0;
-        uint64_t prev_packet_id = 0;
-        bool first_packet = true;
+        uint64_t curr_packet_id = 0;
         bool wrong_packet_err = false;
 
         // We read as long as we don't get declared nbr of bytes of data or
@@ -267,7 +255,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
             DATA_INFO_t data_metainfo; 
 
             if (TCP_get_DATA_metainfo(client_fd, &data_metainfo, 
-                conn.session_id, prev_packet_id, &first_packet) != 0)
+                conn.session_id, curr_packet_id) != SUCCESS)
             {
                 // If received packet was incorrect we send RJT to client and 
                 // close connection
@@ -288,7 +276,16 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
             if (nbr_of_bytes_received > total_nbr_of_bytes_to_be_sent) 
             {
-                error("Client sent more data than declared");
+                make_error_msg(__FUNCTION__, "- Client sent more data than declared");
+                wrong_packet_err = true;
+                RJT rjt;
+
+                init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
+
+                TCP_send_RJT(client_fd, &rjt);
+
+                close(client_fd);
+                break;
             }
 
             memset(buff, 0, sizeof(buff));
