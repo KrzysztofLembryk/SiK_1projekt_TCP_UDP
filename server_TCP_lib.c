@@ -20,17 +20,19 @@
 #include "constants.h"
 
 
-struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd)
+int TCP_wait_for_client(int socket_fd, int *c_fd, 
+                        struct sockaddr_in *client_address)
 {
+    socklen_t server_addr_len = (socklen_t)sizeof(*client_address); 
     // We wait for client that wants to connect with us on accept function
-    struct sockaddr_in client_address;
-    int client_fd = accept(socket_fd, (struct sockaddr *) &client_address,
-                            &((socklen_t){sizeof(client_address)}));
+    int client_fd = accept(socket_fd, (struct sockaddr *) client_address,
+                            &server_addr_len);
 
     if (client_fd < 0) 
     {
-        close(socket_fd);
-        syserr("TCPserver-accept - client_fd < 0");
+        // close(socket_fd);
+        make_error_msg(__FUNCTION__, " - cleint_fd < 0");
+        return ERROR;
     }
     
     char const *client_ip = inet_ntoa(client_address.sin_addr);
@@ -39,7 +41,7 @@ struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd)
     printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
 
     *c_fd = client_fd;
-    return client_address;
+    return SUCCESS;
 }
 
 // Function handles initialization of connection with client. It waits for data
@@ -68,9 +70,7 @@ int TCP_conn_init_helper(CONN *conn, int client_fd)
 
 int TCP_handle_conn_init(CONN *conn, int client_fd)
 {
-    int init_ret_val = TCP_conn_init_helper(conn, client_fd);
-
-    return init_ret_val;
+    return TCP_conn_init_helper(conn, client_fd);
 }
 
 int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
@@ -213,8 +213,13 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
     while(true)
     {
         int client_fd = -1;
-        struct sockaddr_in client_address = TCP_wait_for_client(socket_fd, 
-                                                            &client_fd);
+        struct sockaddr_in client_address;
+
+        if (TCP_wait_for_client(socket_fd, &client_fd, &client_address) != SUCCESS)
+        {
+            // client_fd < 0
+            continue;
+        }
 
         // We need to set time for our client in order to prevent client from 
         // connecting and not sending anything thus blocking our server
