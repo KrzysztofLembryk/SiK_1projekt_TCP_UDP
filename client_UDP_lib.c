@@ -285,8 +285,10 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
     return SUCCESS;
 }
 
-int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, RCVD *rcvd, ssize_t *received_length, uint64_t curr_package_id, uint64_t session_id)
+int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, 
+    ssize_t *received_length, uint64_t curr_package_id, uint64_t session_id)
 {
+    RCVD rcvd;
     // We wait for server response
     do
     {
@@ -306,15 +308,15 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, RCVD *rcvd, ssiz
             return ERROR;
         }
 
-        cast_buff_to(rcvd, sizeof(*rcvd), response_buff, *received_length);
-        ntoh_RCVD(rcvd);
+        cast_buff_to(&rcvd, sizeof(rcvd), response_buff, *received_length);
+        ntoh_RCVD(&rcvd);
 
         // We could get ACC package instead of RCVD, if so we ignore it if its
         // correct ACC package, if not we get error and end connection since 
         // such behaviour is against protocol
-        if (rcvd->package_type_id == ACC_ID )
+        if (rcvd.package_type_id == ACC_ID )
         {
-            if (rcvd->session_id == session_id)
+            if (rcvd.session_id == session_id)
             {
                 
                 ACC acc;
@@ -329,9 +331,9 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, RCVD *rcvd, ssiz
             else
                 return ERROR;
         }
-        if (rcvd->package_type_id != RCVD_ID)
+        if (rcvd.package_type_id != RCVD_ID)
             return ERROR;
-        if (rcvd->session_id != session_id)
+        if (rcvd.session_id != session_id)
             return ERROR;
 
         return SUCCESS;
@@ -478,8 +480,7 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     {
         memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
 
-        init_ret_val = UDPR_client_init_connection(socket_fd, response_buffer, server_address, server_address_len, session_id, 
-        vec->occupied_size);
+        init_ret_val = UDPR_client_init_connection(socket_fd, response_buffer, server_address, server_address_len, session_id, vec->occupied_size);
 
         if (init_ret_val != SUCCESS)
         {
@@ -504,8 +505,7 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     }
 
     // Now we wait for rcvd, we should ignore any acc we got
-    RCVD rcvd;
-    if (UDPR_client_handle_RCVD(socket_fd, response_buffer, &rcvd, &received_length, last_package_idx, session_id) != SUCCESS)
+    if (UDPR_client_handle_RCVD(socket_fd, response_buffer, received_length, last_package_idx, session_id) != SUCCESS)
     {
         make_error_msg(__FUNCTION__, " - client did not receive RCVD msg from server");
         return;
