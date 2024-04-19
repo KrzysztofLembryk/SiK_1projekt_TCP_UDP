@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 
     // We read port, and change it from str to uint16
     uint16_t port = port_from_str_to_ul(argv[2]);
-    printf("port: %" PRIu16 "\n", port);
+    // printf("port: %" PRIu16 "\n", port);
 
     // We create socket on which we will be listening
     // socket(int domain, int type, int protocol)
@@ -76,9 +76,15 @@ int main(int argc, char *argv[])
         TCP_server_handler(socket_fd, &server_address, QUEUE_LEN);
         break; 
     case UDP:
+        printf("running UDP SERVER\n");
+        UDP_server_handler(socket_fd, &server_address);
+        break;
+    case UDPR:
+        printf("running UDPR SERVER\n");
         UDP_server_handler(socket_fd, &server_address);
         break;
     default:
+        make_error_msg(__FUNCTION__, " - type of server == DEFAULT");
         break;
     }
 

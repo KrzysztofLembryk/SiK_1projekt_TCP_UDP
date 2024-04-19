@@ -13,10 +13,10 @@ packet_structures.o my_vec.o client_UDP_lib.o
 client_TCP_lib.o: client_TCP_lib.c err.h common.h protconst.h \
  helper_func.h client_TCP_lib.h packet_structures.h constants.h my_vec.h
 client_UDP_lib.o: client_UDP_lib.c client_UDP_lib.h my_vec.h \
- packet_structures.h constants.h common.h err.h helper_func.h
+ helper_func.h packet_structures.h constants.h common.h err.h protconst.h
 common.o: common.c err.h common.h
 err.o: err.c err.h
-helper_func.o: helper_func.c helper_func.h err.h
+helper_func.o: helper_func.c helper_func.h err.h constants.h
 my_vec.o: my_vec.c err.h my_vec.h
 packet_structures.o: packet_structures.c packet_structures.h constants.h \
  err.h helper_func.h
@@ -28,7 +28,7 @@ server.o: server.c err.h common.h helper_func.h protconst.h \
 server_TCP_lib.o: server_TCP_lib.c err.h common.h protconst.h \
  helper_func.h server_TCP_lib.h packet_structures.h constants.h
 server_UDP_lib.o: server_UDP_lib.c constants.h common.h \
- packet_structures.h helper_func.h err.h
+ packet_structures.h helper_func.h err.h protconst.h
 
 clean:
 	rm -f $(TARGETS) *.o

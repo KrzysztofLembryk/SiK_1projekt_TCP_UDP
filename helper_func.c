@@ -23,7 +23,10 @@ void init_socket_fd(int *socket_fd, communication_type type)
     if (type == TCP)
         *socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     else
+    {
+        printf("Creating UDP socket\n");
         *socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
+    }
 
     if (*socket_fd < 0)
     {
