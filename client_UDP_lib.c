@@ -223,15 +223,11 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
 
 int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t *received_length, int *nbr_of_retransmits, uint64_t curr_package_id, uint64_t session_id)
 {
-    bool do_retransmission = false;
-    int correct_msg;
-    int wait_ret_val;
-
     // We wait for server response
     do
     {
         memset(response_buff, 0, RESPONSE_BUFF_SIZE);
-        wait_ret_val = wait_for_server_response(socket_fd, response_buff, RESPONSE_BUFF_SIZE, received_length);
+        int wait_ret_val = wait_for_server_response(socket_fd, response_buff, RESPONSE_BUFF_SIZE, received_length);
 
         if (wait_ret_val == TIMEOUT_ERROR)
         {
@@ -253,6 +249,9 @@ int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t
             // NOT FROM SOMEONE ELSE!!!!!!
             return ERROR;
         }
+
+        ntoh_ACC(acc);
+
         if (acc->package_type_id != ACC_ID)
             return ERROR;
         if (acc->session_id != session_id)
@@ -331,6 +330,7 @@ int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
         bool do_retransmission = false;
         int correct_msg;
         ACC acc;
+        int wait_for_acc_ret_val = UDPR_client_handle_ACC(socket_fd, response_buff, &acc, &received_length, nbr_of_retransmits, curr_package_id, session_id);
         do
         {
             int wait_ret_val = wait_for_server_response(socket_fd, response_buff, RESPONSE_BUFF_SIZE, &received_length);

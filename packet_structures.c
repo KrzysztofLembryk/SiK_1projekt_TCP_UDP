@@ -154,6 +154,11 @@ void ntoh_CONACC(CONACC *conacc)
     conacc->session_id = be64toh(conacc->session_id);
 }
 
+void ntoh_CONRJT(CONRJT *conrjt)
+{
+    conrjt->session_id = be64toh(conrjt->session_id);
+}
+
 void ntoh_DATA_INFO(DATA_INFO_t *d_info)
 {
     d_info->session_id = be64toh(d_info->session_id);
@@ -161,6 +166,17 @@ void ntoh_DATA_INFO(DATA_INFO_t *d_info)
     d_info->nbr_of_bytes_in_packet = be32toh(d_info->nbr_of_bytes_in_packet);
 }
 
+void ntoh_ACC(ACC *acc)
+{
+    acc->session_id = be64toh(acc->session_id);
+    acc->package_id = be64toh(acc->package_id);
+}
+
+void ntoh_RJT(RJT *rjt)
+{
+    rjt->session_id = be64toh(rjt->session_id);
+    rjt->package_id = be64toh(rjt->package_id);
+}
 // -----CAST FUNCTIONS-----
 
 // Function casts bytes_in_buffer size data stored in buffer, to given void *struct_ptr
