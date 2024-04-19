@@ -308,12 +308,11 @@ int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t
             return ERROR;
         }
 
-        if (cast_buff_to(acc, sizeof(*acc), response_buff, *received_length) == ERROR)
+        cast_buff_to(acc, sizeof(*acc), response_buff, *received_length);
+        if (acc->package_type_id == CONACC_ID)
         {
-            // We got packet with wrong size, thus we end connection
-            // Here we NEED TO CHECK IF WE GOT THIS PACKAGE FROM OUR SERVER
-            // NOT FROM SOMEONE ELSE!!!!!!
-            return ERROR;
+            if (acc->session_id)
+                continue;
         }
 
         ntoh_ACC(acc);
