@@ -378,7 +378,10 @@ int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t
         {
             (*nbr_of_retransmits)++;
             if ((*nbr_of_retransmits) > MAX_RETRANSMITS)
+            {
+                make_error_msg(__FUNCTION__, " - nbr of retransmits greater than MAX nbr of retransmits");
                 return ERROR;
+            }
             return RETRANSMISSION;
         }
         else if (wait_ret_val == ERROR)
@@ -390,8 +393,11 @@ int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t
         cast_buff_to(acc, sizeof(*acc), response_buff, *received_length);
         if (acc->package_type_id == CONACC_ID)
         {
-            if (acc->session_id)
-                continue;
+            // No matter how many conacc we get, we ignore all of them since we
+            // established connection with server, thus we wait for ACC
+            // (even though some conacc might have wrong session id, we ignore 
+            // them nonetheless)
+            continue;
         }
 
         ntoh_ACC(acc);
@@ -469,8 +475,6 @@ int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
             return ERROR;
         }
 
-        // Here might be a few CONACC from server, we want to ignore them thus
-        // we need a loop
         ACC acc;
         int acc_ret_val = UDPR_client_handle_ACC(socket_fd, response_buff, 
         &acc, &received_length, nbr_of_retransmits, curr_package_id, session_id);
