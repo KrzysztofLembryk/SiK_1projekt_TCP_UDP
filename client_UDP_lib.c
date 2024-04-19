@@ -238,6 +238,9 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         return;
 }
 
+
+// ----------UDPR CLIENT FUNCTIONS----------
+
 // - Function tries to establish connection with server by sending CONN and 
 // waiting to receive CONACC.
 // - If any error occured function returns ERROR, otherwise if connection was
@@ -251,8 +254,8 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
     ssize_t received_length;
     CONN conn;
     init_CONN(&conn, session_id, UDPR_PROTOCOL, occupied_size);
-
     printf("Sending conn package \n");
+
     if (sendto_wrapper(socket_fd, server_address, server_address_len,
                    &conn, sizeof(conn), __FUNCTION__) != SUCCESS)
     {
@@ -271,17 +274,18 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
 
     CONACC conacc;
 
-    printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(*conacc), (size_t)received_length);
+    printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc), 
+        (size_t)received_length);
 
-    cast_buff_to(conacc, sizeof(*conacc), response_buffer, 
+    cast_buff_to(&conacc, sizeof(conacc), response_buffer, 
                                                 (size_t)received_length);
-    ntoh_CONACC(conacc);
+    ntoh_CONACC(&conacc);
 
     if (conacc->package_type_id != CONACC_ID || conacc->session_id != session_id)
     {
         return ERROR;
     }
-    printf("Succes\n");
+    printf("UDPR client success in connecting to server\n");
     return SUCCESS;
 }
 
@@ -300,6 +304,7 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff,
             // We wait for rcvd, if we didnt get it in MAX_WAIT we get error
             // since we cannot do the retransmission anymore since we already
             // sent all data
+            make_error_msg(__FUNCTION__, " - timeout");
             return ERROR;
         }
         else if (wait_ret_val == ERROR)
@@ -307,34 +312,53 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff,
             // Recvfrom was < 0 
             return ERROR;
         }
+        // there will be another case: (but not impl yet)
+        // else if (wait_ret_val == WRONG_SERVER_ADDRESS)
+        // continue;
 
         cast_buff_to(&rcvd, sizeof(rcvd), response_buff, *received_length);
         ntoh_RCVD(&rcvd);
 
         // We could get ACC package instead of RCVD, if so we ignore it if its
-        // correct ACC package, if not we get error and end connection since 
+        // correct ACC package, if not, we get error and end connection since 
         // such behaviour is against protocol
-        if (rcvd.package_type_id == ACC_ID )
+        if (rcvd.package_type_id == ACC_ID)
         {
             if (rcvd.session_id == session_id)
             {
-                
                 ACC acc;
 
                 cast_buff_to(&acc, sizeof(acc), response_buff, *received_length); 
                 ntoh_ACC(&acc);
 
-                if (acc.package_id >= curr_package_id)
+                if (acc.package_id > curr_package_id)
+                {
+                    make_error_msg(__FUNCTION__, " - received ACC packet but with package_id greater than curr_package_id");
                     return ERROR;
+                }
                 continue;
             }
             else
+            {
+                make_error_msg(__FUNCTION__, " - received ACC packet with wrong session id");
                 return ERROR;
+            }
         }
         if (rcvd.package_type_id != RCVD_ID)
+        {
+            make_error_msg(__FUNCTION__, " - wrong packet type");
             return ERROR;
+        }
         if (rcvd.session_id != session_id)
+        {
+            make_error_msg(__FUNCTION__, " - wrong session id in received RCVD packet");
             return ERROR;
+        }
+        if (*received_length != sizeof(rcvd))
+        {
+            make_error_msg(__FUNCTION__, " - first two values of rcvd were correct, but size of received message is not equal to size of RCVD packet");
+            return ERROR;
+        }
 
         return SUCCESS;
     } while (true);
