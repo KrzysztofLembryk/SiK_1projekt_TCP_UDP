@@ -157,7 +157,7 @@ void send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_
         }
 
         i++;
-        printf("\nI will connect after After SLEEP(2)\n");
+        printf("\nI will connect after SLEEP(2)\n");
         fflush(stdout);
         sleep(2);
         printf("connecting to server\n\n");
@@ -180,7 +180,7 @@ void send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_
 void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, bool is_TCP)
 {
     printf("-----INFO ABOUT WRONG DATA TESTS-----\n");
-    printf("Tests send correct CONN package to server and then incorrect DATA packet\n");
+    printf("Tests send correct CONN package to server and then incorrect DATA packet\nAt least 10byte input file is needed\n");
     printf("-------------------------------------\n");
     const int BAD_SESSION_ID __attribute__((unused)) = 1;
     const int WRONG_PACKAGE_TYPE __attribute__((unused)) = 2;
@@ -280,7 +280,6 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
 
             if (is_TCP)
             {
-                printf("Need to send at least 10 bytes\n");
                 init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
                 TCP_client_send_CONN(socket_fd, &conn);
 
@@ -299,7 +298,6 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
 
             if (is_TCP)
             {
-                printf("Need to send at least 10 bytes\n");
                 init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
                 TCP_client_send_CONN(socket_fd, &conn);
 
@@ -313,14 +311,13 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
             }
             break;
         case WRONG_DECLARED_SIZE_IN_CONN_too_much:
-            printf("-----WRONG DECLARED SIZE IN CONN too much declared data-----\n");
+            printf("-----TOO MUCH DECLARED DATA SIZE IN CONN-----\n");
             printf("We send CONN package with file nbr of bytes to send equal to size + 20\nThen we send read file in two packets\n");
             printf("---------------------------------------------------------\n");
             fflush(stdout);
 
             if (is_TCP)
             {
-                printf("Need to send at least 10 bytes\n");
                 init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size + 20);
                 TCP_client_send_CONN(socket_fd, &conn);
 
@@ -334,12 +331,11 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
             }
             break;
         case WRONG_DECLARED_SIZE_IN_CONN_too_little:
-            printf("-----WRONG DECLARED SIZE IN CONN too little declared data-----\n");
+            printf("-----TOO LITTLE DECLARED DATA SIZE IN CONN-----\n");
             fflush(stdout);
 
             if (is_TCP)
             {
-                printf("Need to send at least 10 bytes\n");
                 init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
                 TCP_client_send_CONN(socket_fd, &conn);
 
@@ -360,7 +356,6 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
 
             if (is_TCP)
             {
-                printf("Need to send at least 10 bytes\n");
                 init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
                 TCP_client_send_CONN(socket_fd, &conn);
 
@@ -375,7 +370,7 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
         }
 
         i++;
-        printf("\nI will connect after After SLEEP(2)\n");
+        printf("\nI will connect after SLEEP(2)\n");
         fflush(stdout);
         sleep(2);
     }
