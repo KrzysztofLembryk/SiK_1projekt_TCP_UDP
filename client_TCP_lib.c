@@ -120,7 +120,6 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         return;
 
     ntoh_CONN(&conn);
-
     CONACC conacc;
     ssize_t read_length = readn(socket_fd, &conacc, sizeof(conacc));
 
