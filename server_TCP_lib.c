@@ -198,6 +198,8 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         int client_fd = -1;
         struct sockaddr_in client_address;
 
+        // If accepting client was not successful we continue and wait again
+        // since we don't want to stop server from working
         if (TCP_wait_for_client(socket_fd, &client_fd, &client_address) != SUCCESS)
         {
             continue;
@@ -223,6 +225,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         ntoh_CONN(&conn);
         print_CONN(&conn);
 
+        // We send CONACC to client to tell him we accepted his connection
         CONACC conacc;
 
         init_CONACC(&conacc, conn.session_id);
