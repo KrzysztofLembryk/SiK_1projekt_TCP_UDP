@@ -52,7 +52,7 @@ int TCP_handle_conn_init(CONN *conn, int client_fd)
 {
     ssize_t read_length = readn(client_fd, conn, sizeof (*conn));
 
-    if (readn_error_handler(read_length, sizeof (*conn)) != 0)
+    if (readn_error_handler(read_length, sizeof (*conn)) != SUCCESS)
         return ERROR;
 
     if (conn->package_type_id != CONN_ID)

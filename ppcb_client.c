@@ -30,7 +30,10 @@ int main(int argc, char *argv[])
         fatal("usage: %s <protocol type> (<host> <port>) or <server address:port>", argv[0]);
 
     srand(time(NULL));   
-    unsigned int session_id = rand();      
+
+    uint32_t session_id_significant = rand();      
+    uint32_t session_id_less_significant = rand();      
+    uint64_t session_id = (uint64_t) session_id_significant << 32 | session_id_less_significant;
 
     communication_type type_of_comm = check_communication_type(argv[1]);
     const char *host = argv[2];
