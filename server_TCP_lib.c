@@ -287,6 +287,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
                 break;
             }
 
+            curr_packet_id++;
             memset(buff, 0, sizeof(buff));
             TCP_read_data_to_buf(client_fd, buff, data_metainfo.nbr_of_bytes_in_packet);
             TCP_print_data_to_stdout(buff, data_metainfo.package_id, data_metainfo.nbr_of_bytes_in_packet);
