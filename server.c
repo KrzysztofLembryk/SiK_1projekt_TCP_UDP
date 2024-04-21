@@ -31,9 +31,13 @@ int main(int argc, char *argv[])
 
     // We read port, and change it from str to uint16
     uint16_t port = port_from_str_to_ul(argv[2]);
+
+    // We need to ignore SIGPIPE signal, since i.e. write() when writing to 
+    // socket with closed reading end makes SIGPIPE and ends server programme
+    // We dont want that, since it would mean that client after sending 
+    // sth to us could quickly closes his socket and crash our server.
     // 
     signal(SIGPIPE, SIG_IGN);
-    // printf("port: %" PRIu16 "\n", port);
 
     // We create socket on which we will be listening
     // socket(int domain, int type, int protocol)
@@ -76,6 +80,7 @@ int main(int argc, char *argv[])
     switch (type_of_server)
     {
     case TCP:
+        printf("running TCP SERVER\n");
         TCP_server_handler(socket_fd, &server_address, QUEUE_LEN);
         break; 
     case UDP:
