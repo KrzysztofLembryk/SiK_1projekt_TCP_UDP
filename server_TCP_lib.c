@@ -19,18 +19,21 @@
 #include "server_TCP_lib.h"
 #include "constants.h"
 
-
+// - Function waits for new client on accept
+// - Function sets sockaddr_in *client_address to client who was accepted
+// - Function sets int *c_fd to returned client descriptor by accept
+// - On success function returns SUCCESS, otherwise ERROR
 int TCP_wait_for_client(int socket_fd, int *c_fd, 
                         struct sockaddr_in *client_address)
 {
     socklen_t server_addr_len = (socklen_t)sizeof(*client_address); 
+
     // We wait for client that wants to connect with us on accept function
     int client_fd = accept(socket_fd, (struct sockaddr *) client_address,
                             &server_addr_len);
 
     if (client_fd < 0) 
     {
-        // close(socket_fd);
         make_error_msg(__FUNCTION__, " - client_fd < 0");
         return ERROR;
     }
@@ -44,10 +47,11 @@ int TCP_wait_for_client(int socket_fd, int *c_fd,
     return SUCCESS;
 }
 
-// Function handles initialization of connection with client. It waits for data
-// of type CONN, reads it, and checks whether read data has package_type equal
-// to CONN_ID if not, it returns -2. It also checks whether read data has 
-// correct protocol equal to TCP_PROTOCOL
+// - Function handles initialization of connection with client. 
+// - It waits for CONN packet for MAX_WAIT seconds
+// - It checks if received CONN packet has correct package_type_id, protocol_id
+// - It checks if nbr of read bytes is equal to sizeof(CONN)
+// - It returns ERROR if sth is wrong, otherwise SUCCESS
 int TCP_handle_conn_init(CONN *conn, int client_fd)
 {
     ssize_t read_length = readn(client_fd, conn, sizeof (*conn));
