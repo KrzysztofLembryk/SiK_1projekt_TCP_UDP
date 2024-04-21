@@ -38,7 +38,7 @@ int TCP_wait_for_client(int socket_fd, int *c_fd,
     char const *client_ip = inet_ntoa(client_address->sin_addr);
     uint16_t client_port = ntohs(client_address->sin_port);
 
-    printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
+    printf("\n####\naccepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
 
     *c_fd = client_fd;
     return SUCCESS;
@@ -108,7 +108,7 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
     ssize_t read_length = readn(client_fd, data_metainfo, 
                                                     sizeof (*data_metainfo));
 
-    if (readn_error_handler(read_length, sizeof (*data_metainfo)) != 0)
+    if (readn_error_handler(read_length, sizeof (*data_metainfo)) != SUCCESS)
         return ERROR;
 
     ntoh_DATA_INFO(data_metainfo);
@@ -172,12 +172,21 @@ int TCP_send_RCVD(int client_fd, RCVD *rcvd)
     }
 }
 
-void TCP_read_data_to_buf(int client_fd, char *buf, 
+int TCP_read_data_to_buf(int client_fd, char *buf, 
                                         uint32_t nbr_of_bytes_in_packet)
 {
     ssize_t len = readn(client_fd, buf, nbr_of_bytes_in_packet);
     if (len < 0)
-        error("readn");
+    {
+        make_error_msg(__FUNCTION__, " - readn < 0");
+        return ERROR;
+    }
+    if (len != nbr_of_bytes_in_packet)
+    {
+        make_error_msg(__FUNCTION__, " - nbr of bytes read is not equal to nbr of bytes that should be in DATA packet");
+        return ERROR;
+    }
+    return SUCCESS;
 }
 
 void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len)
