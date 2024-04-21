@@ -145,6 +145,17 @@ int TCP_send_packet(void *packet, size_t packet_size, int client_fd)
     return SUCCESS;
 }
 
+void handle_RJT_sending(int client_fd, CONN *conn, uint64_t curr_packet_id)
+{
+    static RJT rjt;
+
+    init_RJT(&rjt, conn->session_id, curr_packet_id);
+
+    TCP_send_packet(&rjt, sizeof(rjt), client_fd);
+
+    close(client_fd);
+}
+
 // - Function reads nbr_of_bytes_in_packet to buf using readn
 // - Function checks if nbr of read bytes is equal to nbr_of_bytes_in_packet
 // - If its not it returns ERROR, it also returns ERROR when read_bytes < 0
@@ -248,19 +259,16 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         // there is some error
         while (nbr_of_bytes_received < total_nbr_of_bytes_to_be_sent)
         {
-            DATA_INFO_t data_metainfo; 
+            static DATA_INFO_t data_metainfo; 
 
+            // If received packet was incorrect we send RJT to client and 
+            // close connection
             if (TCP_get_DATA_metainfo(client_fd, &data_metainfo, 
                 conn.session_id, curr_packet_id) != SUCCESS)
             {
-                // If received packet was incorrect we send RJT to client and 
-                // close connection
                 wrong_packet_err = true;
-                static RJT rjt;
 
-                init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
-                TCP_send_packet(&rjt, sizeof(rjt), client_fd);
-                close(client_fd); 
+                handle_RJT_sending(client_fd, &conn, curr_packet_id);
 
                 break;
             }
@@ -271,15 +279,11 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
             if (nbr_of_bytes_received > total_nbr_of_bytes_to_be_sent) 
             {
-                make_error_msg(__FUNCTION__, "- Client sent more data than declared");
                 wrong_packet_err = true;
-                RJT rjt;
 
-                init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
+                handle_RJT_sending(client_fd, &conn, curr_packet_id);
+                make_error_msg(__FUNCTION__, "- Client sent more data than declared");
 
-                TCP_send_packet(&rjt, sizeof(rjt), client_fd);
-
-                close(client_fd);
                 break;
             }
 
@@ -289,13 +293,9 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
             if (TCP_read_data_to_buf(client_fd, buff, data_metainfo.nbr_of_bytes_in_packet) != SUCCESS)
             {
                 wrong_packet_err = true;
-                RJT rjt;
 
-                init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
+                handle_RJT_sending(client_fd, &conn, curr_packet_id);
 
-                TCP_send_packet(&rjt, sizeof(rjt), client_fd);
-
-                close(client_fd);
                 break;
             }
             TCP_print_data_to_stdout(buff, data_metainfo.package_id, data_metainfo.nbr_of_bytes_in_packet);
@@ -305,7 +305,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
             continue;
 
         // Communication was succesful thus we send RCVD to client
-        RCVD rcvd;
+        static RCVD rcvd;
         init_RCVD(&rcvd, conn.session_id);
         TCP_send_packet(&rcvd, sizeof(rcvd), client_fd);
         close(client_fd);
