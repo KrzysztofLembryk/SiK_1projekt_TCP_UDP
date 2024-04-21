@@ -17,17 +17,14 @@ int TCP_conn_init_helper(CONN *conn, int client_fd);
 int TCP_handle_conn_init(CONN *conn, int client_fd);
 
 
-int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc);
-
 
 int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo, 
                             uint64_t session_id, uint64_t curr_packet_id);
 
 
-int TCP_send_RJT(int client_fd, RJT *rjt);
+int TCP_send_packet(void *packet, size_t packet_size, int client_fd);
 
 
-int TCP_send_RCVD(int client_fd, RCVD *rcvd);
 
 int TCP_read_data_to_buf(int client_fd, char *buf, 
                                         uint32_t nbr_of_bytes_in_packet);

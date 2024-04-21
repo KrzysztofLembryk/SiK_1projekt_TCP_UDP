@@ -74,24 +74,6 @@ int TCP_handle_conn_init(CONN *conn, int client_fd)
 }
 
 
-int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
-{
-    ssize_t written_length = writen(client_fd, conacc, sizeof (*conacc));
-    if (written_length < 0 )
-    {
-        make_error_msg(__FUNCTION__, " - writen returned < 0");
-        return ERROR;
-    }
-    if ((size_t) written_length < sizeof (*conacc)) 
-    {
-        make_error_msg(__FUNCTION__, " - writen-wrote less than wanted size");
-        return ERROR;
-    }
-    else 
-    {
-        return SUCCESS;
-    }
-}
 
 // Function reads only metadata about upcoming data (it also converts
 // data_metainfo from network to host byte order), meaning only:
@@ -132,21 +114,21 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
     return SUCCESS;
 }
 
-int TCP_send_RJT(int client_fd, RJT *rjt)
+int TCP_send_packet(void *packet, size_t packet_size, int client_fd)
 {
     printf("before writen in send RJT\n");
-    ssize_t written_length = writen(client_fd, rjt, sizeof (*rjt));
+    ssize_t written_length = writen(client_fd, packet, packet_size);
     printf("After writen in send RJT\n");
 
     if (written_length < 0 )
     {
         if (errno == EPIPE)
-            make_error_msg(__FUNCTION__, " - writen returned < 0 --> SIGPIPE signal in write, client closed reading end of socket before server could send msg");
+            make_error_msg(__FUNCTION__, " - writen < 0 --> SIGPIPE signal in write, client closed reading end of socket before server could send msg");
         else
             make_error_msg(__FUNCTION__, " - writen returned < 0");
         return ERROR;
     }
-    if ((size_t) written_length < sizeof (*rjt)) 
+    if ((size_t) written_length < packet_size) 
     {
         make_error_msg(__FUNCTION__, " - writen-wrote less than wanted size");
         return ERROR;
@@ -157,29 +139,9 @@ int TCP_send_RJT(int client_fd, RJT *rjt)
         return ERROR;
     }
 
-    printf("RJT reply sent\n");
     return SUCCESS;
 }
 
-int TCP_send_RCVD(int client_fd, RCVD *rcvd)
-{
-    ssize_t written_length = writen(client_fd, rcvd, sizeof (*rcvd));
-    if (written_length < 0 )
-    {
-        error("TCP-send_RCVD-writen returned < 0\n");
-        return ERROR;
-    }
-    if ((size_t) written_length < sizeof (*rcvd)) 
-    {
-        error("TCP-send_RCVD_to_client-writen-wrote less than wanted size\n");
-        return ERROR;
-    }
-    else 
-    {
-        printf("RCVD reply sent\n");
-        return SUCCESS;
-    }
-}
 
 int TCP_read_data_to_buf(int client_fd, char *buf, 
                                         uint32_t nbr_of_bytes_in_packet)
@@ -249,9 +211,8 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
         CONACC conacc;
         init_CONACC(&conacc, conn.session_id);
-        int conacc_ret_val = TCP_send_CONACC_to_client(client_fd, &conacc);
 
-        if (conacc_ret_val != 0)
+        if (TCP_send_packet(&conacc, sizeof(conacc), client_fd) != SUCCESS)
         {
             close(client_fd);
             continue;
@@ -274,16 +235,12 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
             if (TCP_get_DATA_metainfo(client_fd, &data_metainfo, 
                 conn.session_id, curr_packet_id) != SUCCESS)
             {
-                printf("CUHUUHUHJHJHJHJJH\n");
                 // If received packet was incorrect we send RJT to client and 
                 // close connection
                 wrong_packet_err = true;
                 static RJT rjt;
-                printf("Before init RJT\n");
                 init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
-                printf("After init RJT\n");
-                TCP_send_RJT(client_fd, &rjt);
-                printf("AFTER SENDING RJT\n");
+                TCP_send_packet(&rjt, sizeof(rjt), client_fd);
 
                 if (close(client_fd) != SUCCESS)
                 {
@@ -300,7 +257,6 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
                         make_error_msg(__FUNCTION__, " - other error in close");
                     }
                 }
-                printf("Before break\n");
                 break;
             }
 
@@ -316,7 +272,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
                 init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
 
-                TCP_send_RJT(client_fd, &rjt);
+                TCP_send_packet(&rjt, sizeof(rjt), client_fd);
 
                 close(client_fd);
                 break;
@@ -332,7 +288,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
                 init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
 
-                TCP_send_RJT(client_fd, &rjt);
+                TCP_send_packet(&rjt, sizeof(rjt), client_fd);
 
                 close(client_fd);
                 break;
@@ -346,7 +302,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         // Communication was succesful thus we send RCVD to client
         RCVD rcvd;
         init_RCVD(&rcvd, conn.session_id);
-        TCP_send_RCVD(client_fd, &rcvd);
+        TCP_send_packet(&rcvd, sizeof(rcvd), client_fd);
         close(client_fd);
     }
 }
