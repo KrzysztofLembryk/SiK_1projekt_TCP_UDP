@@ -77,17 +77,13 @@ int TCP_handle_conn_init(CONN *conn, int client_fd)
     return SUCCESS;
 }
 
-
-
-// Function reads only metadata about upcoming data (it also converts
-// data_metainfo from network to host byte order), meaning only:
-// - uint8_t package_type_id;
-// - uint64_t session_id;
-// - uint64_t package_id;
-// - uint32_t nbr_of_bytes_in_packet; 
-// without real data that is being sent, so that we can quickly check if data 
-// parameters are correct (i.e if we get consecutive package_id) without wasting
-// time and reading all data even though its incorrect
+// - Function reads only metadata from received DATA packet meaning only:
+// - uint8_t package_type_id; uint64_t session_id; 
+// uint64_t package_id; uint32_t nbr_of_bytes_in_packet; 
+// - Function checks if values of above parameters of DATA packet are correct
+// - Function returns ERROR if any of above parameters is incorrect, otherwise 
+// SUCCESS
+// - Function changes network byte order to host order of read data_info packet
 int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo, 
                             uint64_t session_id, uint64_t curr_packet_id)
 {
