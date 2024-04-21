@@ -137,15 +137,13 @@ int TCP_send_RJT(int client_fd, RJT *rjt)
     printf("before writen in send RJT\n");
     ssize_t written_length = writen(client_fd, rjt, sizeof (*rjt));
     printf("After writen in send RJT\n");
-    if (errno == EPIPE)
-        make_error_msg(__FUNCTION__, " - errno == EPIPE");
-
-    if (errno == EPIPE)
-        make_error_msg(__FUNCTION__, " - errno == EPIPE");
 
     if (written_length < 0 )
     {
-        make_error_msg(__FUNCTION__, " - writen returned < 0");
+        if (errno == EPIPE)
+            make_error_msg(__FUNCTION__, " - writen returned < 0 --> SIGPIPE signal in write, client closed reading end of socket before server could send msg");
+        else
+            make_error_msg(__FUNCTION__, " - writen returned < 0");
         return ERROR;
     }
     if ((size_t) written_length < sizeof (*rjt)) 

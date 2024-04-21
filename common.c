@@ -13,6 +13,7 @@
 
 #include "err.h"
 #include "common.h"
+#include "helper_func.h"
 
 uint16_t port_from_str_to_ul(char const *string) {
     char *endptr;
@@ -75,21 +76,16 @@ ssize_t writen(int fd, const void *vptr, size_t n){
 
     ptr = vptr;               // Can't do pointer arithmetic on void*.
     nleft = n;
-    printf("Before loop in writen\n");
     while (nleft > 0) 
     {
-        printf("bytes left: %d\n", (int)nleft);
         if ((nwritten = write(fd, ptr, nleft)) <= 0)
         {
-            printf("WRITE <= 0 - ERROR in writen\n");
             return nwritten;  // error
         }
 
         nleft -= nwritten;
         ptr += nwritten;
-        printf("bytes left: %d\n", (int)nleft);
     }
-    printf("CHUJ koniec writen\n");
     return n;
 }
 
