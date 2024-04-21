@@ -27,7 +27,20 @@ int TCP_send_package(int socket_fd, void *package, size_t pacakte_size)
     return SUCCESS;
 }
 
-void send_WRONG_CONN(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, unsigned int session_id, bool is_TCP)
+int make_new_socket(communication_type type_of_comm)
+{
+    int socket_fd;
+    init_socket_fd(&socket_fd, type_of_comm);
+
+    // we set timeout for our socket, since server might never respond, so after
+    // MAX_WAIT seconds we will return error
+    struct timeval time_o = {.tv_sec = MAX_WAIT, .tv_usec = 0};
+    setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &time_o, sizeof time_o);
+
+    return socket_fd;
+}
+
+void send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, unsigned int session_id, bool is_TCP)
 {
     const int BAD_SESSION_ID __attribute__((unused)) = 0;
     const int WRONG_PROTOCOL __attribute__((unused)) = 1;
@@ -36,12 +49,15 @@ void send_WRONG_CONN(int socket_fd, struct sockaddr_in *server_address, my_vec_t
     const int CONNECT_SEND_WAIT __attribute__((unused)) = 4;
     int i = 0;
     CONN conn;
+    int socket_fd = init_socket_fd;
 
     while (true)
     {
         switch (i)
         {
         case BAD_SESSION_ID:
+            printf("-----BAD SESSION ID-----\n");
+            fflush(stdout);
             if (is_TCP)
             {
                 init_CONN(&conn, 2137, TCP_PROTOCOL, vec->occupied_size);
@@ -54,6 +70,8 @@ void send_WRONG_CONN(int socket_fd, struct sockaddr_in *server_address, my_vec_t
             }
             break;
         case WRONG_PROTOCOL:
+            printf("-----WRONG PROTOCOL-----\n");
+            fflush(stdout);
             if (is_TCP)
             {
                 init_CONN(&conn, session_id, UDP_PROTOCOL, vec->occupied_size);
@@ -63,18 +81,23 @@ void send_WRONG_CONN(int socket_fd, struct sockaddr_in *server_address, my_vec_t
             }
             break;
         case WRONG_PACKAGE_TYPE:
+            printf("-----WRONG PACKAGE TYPE-----\n");
+            fflush(stdout);
             if (is_TCP)
             {
                 init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
 
                 conn.package_type_id = DATA_ID;
-
+                printf("Sending conn\n");
                 TCP_client_send_CONN(socket_fd, &conn);
                 // second send to check if connection was closed by server
+                printf("Sending second conn\n");
                 TCP_client_send_CONN(socket_fd, &conn);
             }
             break;
         case CONNECT_AND_WAIT:
+            printf("-----CONNECT AND WAIT-----\n");
+            fflush(stdout);
             if (is_TCP)
             {
                 sleep(MAX_WAIT + 1);
@@ -83,6 +106,8 @@ void send_WRONG_CONN(int socket_fd, struct sockaddr_in *server_address, my_vec_t
             }
             break;
         case CONNECT_SEND_WAIT:
+            printf("-----CONNECT SEND WAIT-----\n");
+            fflush(stdout);
             if (is_TCP)
             {
                 init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
@@ -94,32 +119,44 @@ void send_WRONG_CONN(int socket_fd, struct sockaddr_in *server_address, my_vec_t
             return;
         }
 
+        i++;
+        sleep(5);
+        printf("After SLEEP(5)\n");
+        fflush(stdout);
+
+        if (is_TCP)
+        {
+            socket_fd = make_new_socket(TCP);
+        }
+        else
+            socket_fd = make_new_socket(UDP);
+
         if (connect(socket_fd, (struct sockaddr *)server_address,
                     (socklen_t)sizeof(*server_address)) < 0)
         {
             make_error_msg(__FUNCTION__, " - cannot connect to the server");
-            return;
         }
-
-        i++;
     }
 }
 
 void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, unsigned int session_id, bool is_TCP)
 {
+    // Connect to the server.
+    if (connect(socket_fd, (struct sockaddr *)server_address,
+                    (socklen_t)sizeof(*server_address)) < 0)
+    {
+        make_error_msg(__FUNCTION__, " - cannot connect to the server");
+        return;
+    }
+
     int i = 0;
+
     while (true)
     {
-        // Connect to the server.
-        if (connect(socket_fd, (struct sockaddr *)server_address,
-                    (socklen_t)sizeof(*server_address)) < 0)
-        {
-            make_error_msg(__FUNCTION__, " - cannot connect to the server");
-            return;
-        }
         switch (i)
         {
         case WRONG_CONN:
+            printf("SENDING WRONG CONN\n");
             send_WRONG_CONN(socket_fd, server_address, vec, session_id, is_TCP);
             break;
         case WRONG_DATA:
@@ -130,4 +167,5 @@ void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_
         i++;
         sleep(2);
     }
+    printf("----------TESTS ENDED----------\n");
 }

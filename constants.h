@@ -24,7 +24,7 @@
 // -----BUFFORS SIZES-----
 
 // #define SEND_BUFF_SIZE 32000
-#define SEND_BUFF_SIZE 25
+#define SEND_BUFF_SIZE 120
 #define RECEIVE_BUFFOR_SIZE 64032
 
 // -----RETURN VALUES and ERROR VALUES-----

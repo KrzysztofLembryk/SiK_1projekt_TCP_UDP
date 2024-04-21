@@ -60,6 +60,7 @@ int main(int argc, char *argv[])
         case TCP:
             if (do_tests)
             {
+                printf("DOING TCP TESTING!!!!\n");
                 TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, true);
             }
             else
