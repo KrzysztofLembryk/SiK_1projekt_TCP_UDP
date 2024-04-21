@@ -298,7 +298,18 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
             curr_packet_id++;
             memset(buff, 0, sizeof(buff));
-            TCP_read_data_to_buf(client_fd, buff, data_metainfo.nbr_of_bytes_in_packet);
+            if (TCP_read_data_to_buf(client_fd, buff, data_metainfo.nbr_of_bytes_in_packet) != SUCCESS)
+            {
+                wrong_packet_err = true;
+                RJT rjt;
+
+                init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
+
+                TCP_send_RJT(client_fd, &rjt);
+
+                close(client_fd);
+                break;
+            }
             TCP_print_data_to_stdout(buff, data_metainfo.package_id, data_metainfo.nbr_of_bytes_in_packet);
         }
 

@@ -29,7 +29,7 @@ int TCP_send_RJT(int client_fd, RJT *rjt);
 
 int TCP_send_RCVD(int client_fd, RCVD *rcvd);
 
-void TCP_read_data_to_buf(int client_fd, char *buf, 
+int TCP_read_data_to_buf(int client_fd, char *buf, 
                                         uint32_t nbr_of_bytes_in_packet);
 
 
