@@ -196,7 +196,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
     if (getsockname(socket_fd, (struct sockaddr *) server_address, &length) < 0)
         syserr("getsockname");
 
-    printf("TCPserver-parent is listening on port %" PRIu16 "\n", 
+    printf("TCPserver is listening on port %" PRIu16 "\n", 
         ntohs(server_address->sin_port));
     
     while(true)
@@ -206,7 +206,6 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
         if (TCP_wait_for_client(socket_fd, &client_fd, &client_address) != SUCCESS)
         {
-            // client_fd < 0
             continue;
         }
 
