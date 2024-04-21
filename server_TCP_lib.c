@@ -119,9 +119,7 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
 // when writen size is not equal packet_size, otherwise it returns SUCCESS
 int TCP_send_packet(void *packet, size_t packet_size, int client_fd)
 {
-    printf("before writen in send RJT\n");
     ssize_t written_length = writen(client_fd, packet, packet_size);
-    printf("After writen in send RJT\n");
 
     if (written_length < 0 )
     {
@@ -207,7 +205,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
     while(true)
     {
         int client_fd = -1;
-        struct sockaddr_in client_address;
+        static struct sockaddr_in client_address;
 
         // If accepting client was not successful we continue and wait again
         // since we don't want to stop server from working
@@ -222,7 +220,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
         // Now we want to receive CONN packet with package_type = CONN_ID and
         // protocol_id = TCP_PROTOCOL to establish connection with client
-        CONN conn;
+        static CONN conn;
         conn.package_type_id = 77;
 
         // If dont receive correct CONN packet we end connection with client
@@ -237,7 +235,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         print_CONN(&conn);
 
         // We send CONACC to client to tell him we accepted his connection
-        CONACC conacc;
+        static CONACC conacc;
 
         init_CONACC(&conacc, conn.session_id);
 
