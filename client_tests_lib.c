@@ -135,9 +135,164 @@ void send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_
     }
 }
 
-void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, unsigned int session_id, bool is_TCP)
+void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, bool is_TCP)
 {
+    const int BAD_SESSION_ID __attribute__((unused)) = 0;
+    const int WRONG_PROTOCOL __attribute__((unused)) = 1;
+    const int WRONG_PACKAGE_TYPE __attribute__((unused)) = 2;
+    const int CONNECT_AND_WAIT __attribute__((unused)) = 3;
+    const int SECOND_DATA_PACKAGE_WRONG_ID_SMALLER __attribute__((unused)) = 4;
+    const int SECOND_DATA_PACKAGE_WRONG_ID_GREATER __attribute__((unused)) = 5;
+    const int WRONG_DECLARED_SIZE_IN_CONN __attribute__((unused)) = 6;
+    const int WRONG_DECLARED_SIZE_IN_DATA __attribute__((unused)) = 7;
+    int i = 0;
+    CONN conn;
+    int socket_fd = init_socket_fd;
 
+    while (true)
+    {
+        switch (i)
+        {
+        case BAD_SESSION_ID:
+            printf("-----BAD SESSION ID of second DATA PACKAGE-----\n");
+            fflush(stdout);
+            if (is_TCP)
+            {
+                init_CONN(&conn, session_id, TCP_PROTOCOL, 
+                                                    2 * vec->occupied_size);
+                TCP_client_send_CONN(socket_fd, &conn);
+
+                // second send to check if connection was closed by server
+                DATA data;
+                init_DATA(&data, session_id, 0, vec->occupied_size, vec->buff);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size);
+
+                init_DATA(&data, 2136, 1, vec->occupied_size, vec->buff);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size);
+            }
+            break;
+        case WRONG_PACKAGE_TYPE:
+            printf("-----WRONG PACKAGE TYPE-----\n");
+            fflush(stdout);
+            if (is_TCP)
+            {
+                init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
+                TCP_client_send_CONN(socket_fd, &conn);
+
+                DATA data;
+
+                init_DATA(&data, session_id, 0, vec->occupied_size, vec->buff);
+
+                data.package_type_id = CONN_ID;
+
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size);
+            }
+            break;
+        case CONNECT_AND_WAIT:
+            printf("-----CONNECT SEND DATA WAIT MAX_WAIT-----\n");
+            fflush(stdout);
+
+            if (is_TCP)
+            {
+                init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
+                TCP_client_send_CONN(socket_fd, &conn);
+
+                DATA data;
+
+                init_DATA(&data, session_id, 0, vec->occupied_size, vec->buff);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size);
+                sleep(MAX_WAIT + 1);
+            }
+            break;
+        case SECOND_DATA_PACKAGE_WRONG_ID_SMALLER:
+            printf("-----SECOND DATA PACKAGE WRONG ID - SMALLER-----\n");
+            fflush(stdout);
+            if (is_TCP)
+            {
+                printf("Need to send at least 10 bytes\n");
+                init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
+                TCP_client_send_CONN(socket_fd, &conn);
+
+                DATA data;
+
+                init_DATA(&data, session_id, 0, 5, vec->buff);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + 5);
+
+                init_DATA(&data, session_id, 0, vec->occupied_size - 5, vec->buff + 5);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size - 5);
+            }
+            break;
+        case SECOND_DATA_PACKAGE_WRONG_ID_GREATER:
+            printf("-----SECOND DATA PACKAGE WRONG ID - GREATER-----\n");
+            fflush(stdout);
+            if (is_TCP)
+            {
+                printf("Need to send at least 10 bytes\n");
+                init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
+                TCP_client_send_CONN(socket_fd, &conn);
+
+                DATA data;
+
+                init_DATA(&data, session_id, 0, 5, vec->buff);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + 5);
+
+                init_DATA(&data, session_id, 3, vec->occupied_size - 5, vec->buff + 5);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size - 5);
+            }
+            break;
+        case WRONG_DECLARED_SIZE_IN_CONN:
+            printf("-----WRONG DECLARED SIZE IN CONN-----\n");
+            fflush(stdout);
+            if (is_TCP)
+            {
+                printf("Need to send at least 10 bytes\n");
+                init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
+                TCP_client_send_CONN(socket_fd, &conn);
+
+                DATA data;
+
+                init_DATA(&data, session_id, 0, 5, vec->buff);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + 5);
+
+                init_DATA(&data, session_id, 5, vec->occupied_size, vec->buff);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size);
+            }
+            break;
+        case WRONG_DECLARED_SIZE_IN_DATA:
+            printf("-----WRONG DECLARED SIZE IN DATA-----\n");
+            fflush(stdout);
+            if (is_TCP)
+            {
+                printf("Need to send at least 10 bytes\n");
+                init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
+                TCP_client_send_CONN(socket_fd, &conn);
+
+                DATA data;
+
+                init_DATA(&data, session_id, 0, 5, vec->buff);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size);
+            }
+            break;
+        default:
+            return;
+        }
+
+        i++;
+        sleep(5);
+        printf("connecting After SLEEP(5)\n");
+        fflush(stdout);
+
+        if (is_TCP)
+            socket_fd = make_new_socket(TCP);
+        else
+            socket_fd = make_new_socket(UDP);
+
+        if (connect(socket_fd, (struct sockaddr *)server_address,
+                    (socklen_t)sizeof(*server_address)) < 0)
+        {
+            make_error_msg(__FUNCTION__, " - cannot connect to the server");
+        }
+    }
 }
 
 
@@ -164,6 +319,7 @@ void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_
             send_WRONG_CONN(socket_fd, server_address, vec, session_id, is_TCP);
             break;
         case WRONG_DATA:
+            send_WRONG_DATA(socket_fd, server_address, vec, session_id, is_TCP);
             break;
         default:
             printf("----------TESTS ENDED----------\n");
