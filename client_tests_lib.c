@@ -116,9 +116,9 @@ void send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_
         }
 
         i++;
-        printf("\nI will connect after After SLEEP(4)\n");
+        printf("\nI will connect after After SLEEP(2)\n");
         fflush(stdout);
-        sleep(4);
+        sleep(2);
         printf("connecting to server\n\n");
 
         if (is_TCP)
@@ -143,8 +143,9 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
     const int CONNECT_AND_WAIT __attribute__((unused)) = 3;
     const int SECOND_DATA_PACKAGE_WRONG_ID_SMALLER __attribute__((unused)) = 4;
     const int SECOND_DATA_PACKAGE_WRONG_ID_GREATER __attribute__((unused)) = 5;
-    const int WRONG_DECLARED_SIZE_IN_CONN __attribute__((unused)) = 6;
-    const int WRONG_DECLARED_SIZE_IN_DATA __attribute__((unused)) = 7;
+    const int WRONG_DECLARED_SIZE_IN_CONN_too_much __attribute__((unused)) = 6;
+    const int  WRONG_DECLARED_SIZE_IN_CONN_too_little __attribute__((unused)) = 7;
+    const int  WRONG_DECLARED_SIZE_IN_DATA __attribute__((unused)) = 8;
     int i = 1;
     CONN conn;
     int socket_fd = init_socket_fd;
@@ -181,7 +182,8 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
                 init_DATA(&data, session_id, 0, vec->occupied_size, vec->buff);
                 TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size);
 
-                init_DATA(&data, 2136, 1, vec->occupied_size, vec->buff);
+                uint64_t id = 2137;
+                init_DATA(&data, id, 1, vec->occupied_size, vec->buff);
                 TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size);
             }
             break;
@@ -254,8 +256,26 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
                 TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size - 7);
             }
             break;
-        case WRONG_DECLARED_SIZE_IN_CONN:
-            printf("-----WRONG DECLARED SIZE IN CONN-----\n");
+        case WRONG_DECLARED_SIZE_IN_CONN_too_much:
+            printf("-----WRONG DECLARED SIZE IN CONN too much declared data-----\n");
+            fflush(stdout);
+            if (is_TCP)
+            {
+                printf("Need to send at least 10 bytes\n");
+                init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size + 20);
+                TCP_client_send_CONN(socket_fd, &conn);
+
+                DATA data;
+
+                init_DATA(&data, session_id, 0, 5, vec->buff);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + 5);
+
+                init_DATA(&data, session_id, 1, vec->occupied_size, vec->buff);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size);
+            }
+            break;
+        case WRONG_DECLARED_SIZE_IN_CONN_too_little:
+            printf("-----WRONG DECLARED SIZE IN CONN too little declared data-----\n");
             fflush(stdout);
             if (is_TCP)
             {
@@ -273,7 +293,7 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
             }
             break;
         case WRONG_DECLARED_SIZE_IN_DATA:
-            printf("-----WRONG DECLARED SIZE IN DATA-----\n");
+            printf("-----WRONG DECLARED SIZE IN DATA so we send our msg and some junk-----\n");
             fflush(stdout);
             if (is_TCP)
             {
@@ -284,7 +304,7 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
                 DATA data;
 
                 init_DATA(&data, session_id, 0, 5, vec->buff);
-                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + vec->occupied_size);
+                TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + 26);
             }
             break;
         default:
@@ -292,9 +312,10 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
         }
 
         i++;
-        printf("\nI will connect after After SLEEP(4)\n");
+        close(socket_fd);
+        printf("\nI will connect after After SLEEP(2)\n");
         fflush(stdout);
-        sleep(4);
+        sleep(2);
 
     }
 }

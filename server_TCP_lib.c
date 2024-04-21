@@ -135,21 +135,25 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
 int TCP_send_RJT(int client_fd, RJT *rjt)
 {
     ssize_t written_length = writen(client_fd, rjt, sizeof (*rjt));
+
     if (written_length < 0 )
     {
-        error("TCP-send_RJT-writen returned < 0\n");
+        make_error_msg(__FUNCTION__, " - writen returned < 0");
         return ERROR;
     }
     if ((size_t) written_length < sizeof (*rjt)) 
     {
-        error("TCP-send_RJT_to_client-writen-wrote less than wanted size\n");
+        make_error_msg(__FUNCTION__, " - writen-wrote less than wanted size");
         return ERROR;
     }
-    else 
+    if (written_length == 0)
     {
-        printf("RJT reply sent\n");
-        return SUCCESS;
+        make_error_msg(__FUNCTION__, " - writen len == 0");
+        return ERROR;
     }
+
+    printf("RJT reply sent\n");
+    return SUCCESS;
 }
 
 int TCP_send_RCVD(int client_fd, RCVD *rcvd)
@@ -265,16 +269,33 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
             if (TCP_get_DATA_metainfo(client_fd, &data_metainfo, 
                 conn.session_id, curr_packet_id) != SUCCESS)
             {
+                printf("CUHUUHUHJHJHJHJJH\n");
                 // If received packet was incorrect we send RJT to client and 
                 // close connection
                 wrong_packet_err = true;
-                RJT rjt;
-
+                static RJT rjt;
+                printf("Before init RJT\n");
                 init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
-
+                printf("After init RJT\n");
                 TCP_send_RJT(client_fd, &rjt);
+                printf("AFTER SENDING RJT\n");
 
-                close(client_fd);
+                if (close(client_fd) != SUCCESS)
+                {
+                    if (errno == EBADF)
+                    {
+                        make_error_msg(__FUNCTION__, " - close() fd isn't a valid open file descriptor");
+                    }
+                    else if (errno == EINTR)
+                    {
+                        make_error_msg(__FUNCTION__, " - close interrupted by a signal");
+                    }
+                    else
+                    {
+                        make_error_msg(__FUNCTION__, " - other error in close");
+                    }
+                }
+                printf("Before break\n");
                 break;
             }
 
@@ -298,6 +319,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
             curr_packet_id++;
             memset(buff, 0, sizeof(buff));
+
             if (TCP_read_data_to_buf(client_fd, buff, data_metainfo.nbr_of_bytes_in_packet) != SUCCESS)
             {
                 wrong_packet_err = true;
