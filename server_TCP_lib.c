@@ -302,6 +302,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         if (wrong_packet_err)
             continue;
 
+        // HERE WE SHOULD CHECK WHETHER CLIENT SENT sth more
         // Communication was succesful thus we send RCVD to client
         static RCVD rcvd;
         init_RCVD(&rcvd, conn.session_id);
