@@ -35,8 +35,8 @@ int TCP_wait_for_client(int socket_fd, int *c_fd,
         return ERROR;
     }
     
-    char const *client_ip = inet_ntoa(client_address.sin_addr);
-    uint16_t client_port = ntohs(client_address.sin_port);
+    char const *client_ip = inet_ntoa(client_address->sin_addr);
+    uint16_t client_port = ntohs(client_address->sin_port);
 
     printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
 

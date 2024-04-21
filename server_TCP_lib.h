@@ -3,11 +3,12 @@
 
 
 #include <inttypes.h>
+#include <netinet/in.h>
 #include "packet_structures.h"
 #include "stdbool.h"
 
 
-struct sockaddr_in TCP_wait_for_client(int socket_fd, int *c_fd);
+int TCP_wait_for_client(int socket_fd, int *c_fd, struct sockaddr_in *client_address);
 
 
 int TCP_conn_init_helper(CONN *conn, int client_fd);
@@ -20,8 +21,7 @@ int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc);
 
 
 int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo, 
-                            uint64_t session_id, uint64_t prev_packet_id, 
-                            bool *first_packet);
+                            uint64_t session_id, uint64_t curr_packet_id);
 
 
 int TCP_send_RJT(int client_fd, RJT *rjt);

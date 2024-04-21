@@ -11,6 +11,7 @@
 #include "helper_func.h"
 #include "client_TCP_lib.h"
 #include "client_UDP_lib.h"
+#include "client_tests_lib.h"
 
 my_vec_t *read_stdin()
 {
@@ -52,11 +53,19 @@ int main(int argc, char *argv[])
     // the end, allocation happens only after all previous operations were 
     // successful
     my_vec_t *vec = read_stdin();
+    int do_tests = 1;
 
     switch (type_of_comm)
     {
         case TCP:
-            TCP_client_handler(socket_fd, &server_address, vec, session_id);
+            if (do_tests)
+            {
+                TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, true);
+            }
+            else
+            {
+                TCP_client_handler(socket_fd, &server_address, vec, session_id);
+            }
             break; 
         case UDP:
             UDP_client_handler(socket_fd, &server_address, vec, session_id);
