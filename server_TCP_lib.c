@@ -114,6 +114,9 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
     return SUCCESS;
 }
 
+// - Function sends given packet of size packet_size to client_fd using writen
+// - Function returns ERROR when writen returns <= 0 (also handles EPIPE) or 
+// when writen size is not equal packet_size, otherwise it returns SUCCESS
 int TCP_send_packet(void *packet, size_t packet_size, int client_fd)
 {
     printf("before writen in send RJT\n");
@@ -142,17 +145,20 @@ int TCP_send_packet(void *packet, size_t packet_size, int client_fd)
     return SUCCESS;
 }
 
-
+// - Function reads nbr_of_bytes_in_packet to buf using readn
+// - Function checks if nbr of read bytes is equal to nbr_of_bytes_in_packet
+// - If its not it returns ERROR, it also returns ERROR when read_bytes < 0
+// otherwise it returns SUCCESS
 int TCP_read_data_to_buf(int client_fd, char *buf, 
                                         uint32_t nbr_of_bytes_in_packet)
 {
-    ssize_t len = readn(client_fd, buf, nbr_of_bytes_in_packet);
-    if (len < 0)
+    ssize_t read_bytes = readn(client_fd, buf, nbr_of_bytes_in_packet);
+    if (read_bytes < 0)
     {
         make_error_msg(__FUNCTION__, " - readn < 0");
         return ERROR;
     }
-    if (len != nbr_of_bytes_in_packet)
+    if (read_bytes != nbr_of_bytes_in_packet)
     {
         make_error_msg(__FUNCTION__, " - nbr of bytes read is not equal to nbr of bytes that should be in DATA packet");
         return ERROR;
@@ -166,6 +172,14 @@ void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len
     // printf("[packet: %" PRIu64 "]:\n", package_id);
 }
 
+// - Function handles TCP communication with clients
+// - If client connects to our server and makes server wait for packet more
+// than MAX_WAIT seconds, server ends connection with client
+// - If client sends data with wrong meta info, or sends wrong type of packet
+// not following established protocol, server ends connection
+// - If communication was successful server sends RCVD packet and ends 
+// connection
+// - Server closes clients' file descriptors after ending connections
 void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int queue_len)
 {
     // Since its TCP server we switch its socket to listening
@@ -198,8 +212,8 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         CONN conn;
         conn.package_type_id = 77;
 
-        // We didnt receive correct CONN packet thus we end connection with
-        // client and move on 
+        // If dont receive correct CONN packet we end connection with client
+        // and move on.
         if (TCP_handle_conn_init(&conn, client_fd) != SUCCESS)
         {
             close(client_fd);
@@ -210,6 +224,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         print_CONN(&conn);
 
         CONACC conacc;
+
         init_CONACC(&conacc, conn.session_id);
 
         if (TCP_send_packet(&conacc, sizeof(conacc), client_fd) != SUCCESS)
@@ -239,24 +254,11 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
                 // close connection
                 wrong_packet_err = true;
                 static RJT rjt;
+
                 init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
                 TCP_send_packet(&rjt, sizeof(rjt), client_fd);
+                close(client_fd); 
 
-                if (close(client_fd) != SUCCESS)
-                {
-                    if (errno == EBADF)
-                    {
-                        make_error_msg(__FUNCTION__, " - close() fd isn't a valid open file descriptor");
-                    }
-                    else if (errno == EINTR)
-                    {
-                        make_error_msg(__FUNCTION__, " - close interrupted by a signal");
-                    }
-                    else
-                    {
-                        make_error_msg(__FUNCTION__, " - other error in close");
-                    }
-                }
                 break;
             }
 
