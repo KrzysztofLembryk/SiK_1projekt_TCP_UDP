@@ -56,12 +56,11 @@ int main(int argc, char *argv[])
     // the end, allocation happens only after all previous operations were 
     // successful
     my_vec_t *vec = read_stdin();
-    int do_tests = 1;
 
     switch (type_of_comm)
     {
         case TCP:
-            if (do_tests)
+            if (DO_TESTS)
             {
                 printf("DOING TCP TESTING!!!!\n");
                 TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, true);

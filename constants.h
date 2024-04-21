@@ -1,6 +1,9 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+// -----DO TESTS CONSTANT-----
+#define DO_TESTS 0
+
 // -----TCP SERVER QUEUE LEN-----
 
 #define QUEUE_LEN 5

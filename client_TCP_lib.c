@@ -128,8 +128,6 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         return;
 
     ntoh_CONACC(&conacc);
-    printf("ssleep(5)");
-    sleep(5);
     printf("Sending data\n");
 
     if (TCP_client_send_DATA(socket_fd, vec, session_id) != SUCCESS)
