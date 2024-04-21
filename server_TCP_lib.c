@@ -134,7 +134,14 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
 
 int TCP_send_RJT(int client_fd, RJT *rjt)
 {
+    printf("before writen in send RJT\n");
     ssize_t written_length = writen(client_fd, rjt, sizeof (*rjt));
+    printf("After writen in send RJT\n");
+    if (errno == EPIPE)
+        make_error_msg(__FUNCTION__, " - errno == EPIPE");
+
+    if (errno == EPIPE)
+        make_error_msg(__FUNCTION__, " - errno == EPIPE");
 
     if (written_length < 0 )
     {

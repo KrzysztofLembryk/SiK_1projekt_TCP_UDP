@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 #include "err.h"
 #include "common.h"
@@ -30,6 +31,8 @@ int main(int argc, char *argv[])
 
     // We read port, and change it from str to uint16
     uint16_t port = port_from_str_to_ul(argv[2]);
+    // 
+    signal(SIGPIPE, SIG_IGN);
     // printf("port: %" PRIu16 "\n", port);
 
     // We create socket on which we will be listening
