@@ -122,7 +122,7 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
         *received_length = recvfrom(socket_fd, response_buffer, buff_size, RECEIVE_FLAGS, (struct sockaddr *)&receive_address,
                                         (socklen_t *)&server_address_len);
 
-        if (*received_length < 0)
+        if (*received_length <= 0)
         {
             if (errno == EAGAIN)
             {
@@ -131,17 +131,22 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
             }
             else
             {
-                make_error_msg(__FUNCTION__, " - recvfrom < 0");
+                make_error_msg(__FUNCTION__, " - recvfrom <= 0");
                 return ERROR;
             }
         }
-        if (receive_address.sin_addr.s_addr != correct_addr->sin_addr.s_addr ||
-        receive_address.sin_port != correct_addr->sin_port)
-        {
-            // If we got packet not from our server we ignore it
-            make_error_msg(__FUNCTION__, " - got msg not from my server, ignoring it");
-            continue;
-        }
+        // if (receive_address.sin_addr.s_addr != correct_addr->sin_addr.s_addr ||
+        // receive_address.sin_port != correct_addr->sin_port)
+        // {
+        //     printf("---------------------------------------------------\n");
+        //     printf("received addr s_addr: %u, correct addr s_addr: %u\n", receive_address.sin_addr.s_addr, correct_addr->sin_addr.s_addr);
+        //     printf("received addre port: %hu, correct addr port: %hu\n", receive_address.sin_port, correct_addr->sin_port);
+        //     printf("---------------------------------------------------\n");
+
+        //     // If we got packet not from our server we ignore it
+        //     make_error_msg(__FUNCTION__, " - got msg not from my server, ignoring it");
+        //     continue;
+        // }
 
         return SUCCESS;
     }

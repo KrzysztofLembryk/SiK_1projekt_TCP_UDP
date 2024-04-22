@@ -60,9 +60,10 @@ int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
             }
         }
 
-        if (client_address->sin_addr.s_addr != correct_addr->sin_addr.s_addr ||
-        client_address->sin_port != correct_addr->sin_port)
+        if ((client_address->sin_addr.s_addr != correct_addr->sin_addr.s_addr)
+         || (client_address->sin_port != correct_addr->sin_port))
         {
+            make_error_msg(__FUNCTION__, " - got packet not from our client, sending CONRJT");
             // If we got connection not from our client, we send CONRJT and wait
             // for another msg
             send_CONRJT(socket_fd, client_address, *client_address_len, session_id);

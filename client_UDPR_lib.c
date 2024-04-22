@@ -212,7 +212,6 @@ int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     {
         memset(buff, 0, SEND_BUFF_SIZE + 1);
         memset(response_buff, 0, RESPONSE_BUFF_SIZE);
-        // sleep(11);
         if (bytes_left < SEND_BUFF_SIZE)
         {
             strncpy(buff, vec->buff + start_cpy_pos, bytes_left);
@@ -299,8 +298,6 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     // Connection with server was established succesfully, now we will be 
     // sending our data
     printf("Sending data\n"); 
-    sleep(11);
-    printf("Po sleep\n");
     if (UDPR_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id, &nbr_of_retransmits) != SUCCESS)
     {
         return;
