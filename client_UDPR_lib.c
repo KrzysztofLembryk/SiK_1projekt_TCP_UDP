@@ -29,6 +29,7 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
     CONN conn;
     init_CONN(&conn, session_id, UDPR_PROTOCOL, occupied_size);
     printf("Sending conn package \n");
+    printf("to server: %u, port %hu\n", server_address->sin_addr.s_addr, server_address->sin_port);
 
     if (sendto_wrapper(socket_fd, server_address, server_address_len,
                    &conn, sizeof(conn), __FUNCTION__) != SUCCESS)

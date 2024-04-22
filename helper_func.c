@@ -135,18 +135,18 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
                 return ERROR;
             }
         }
-        // if (receive_address.sin_addr.s_addr != correct_addr->sin_addr.s_addr ||
-        // receive_address.sin_port != correct_addr->sin_port)
-        // {
-        //     printf("---------------------------------------------------\n");
-        //     printf("received addr s_addr: %u, correct addr s_addr: %u\n", receive_address.sin_addr.s_addr, correct_addr->sin_addr.s_addr);
-        //     printf("received addre port: %hu, correct addr port: %hu\n", receive_address.sin_port, correct_addr->sin_port);
-        //     printf("---------------------------------------------------\n");
+        if (receive_address.sin_addr.s_addr != correct_addr->sin_addr.s_addr ||
+        receive_address.sin_port != correct_addr->sin_port)
+        {
+            printf("---------------------------------------------------\n");
+            printf("received addr s_addr: %u, correct addr s_addr: %u\n", receive_address.sin_addr.s_addr, correct_addr->sin_addr.s_addr);
+            printf("received addre port: %hu, correct addr port: %hu\n", receive_address.sin_port, correct_addr->sin_port);
+            printf("---------------------------------------------------\n");
 
-        //     // If we got packet not from our server we ignore it
-        //     make_error_msg(__FUNCTION__, " - got msg not from my server, ignoring it");
-        //     continue;
-        // }
+            // If we got packet not from our server we ignore it
+            make_error_msg(__FUNCTION__, " - got msg not from my server, ignoring it");
+            continue;
+        }
 
         return SUCCESS;
     }

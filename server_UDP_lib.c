@@ -391,6 +391,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         {
             if (data_info.package_type_id == CONN_ID)
             {
+                make_error_msg(__FUNCTION__, " - got old CONN packet instead of DATA");
                 // We have connection established so we ignore clients CONN msgs
                 continue;
             }
