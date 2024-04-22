@@ -23,7 +23,8 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
                                 struct sockaddr_in *server_address, 
                                 socklen_t server_address_len,
                                 uint64_t session_id,
-                                uint64_t occupied_size)
+                                uint64_t occupied_size,
+                                unsigned long *real_server_s_addr)
 {
     ssize_t received_length;
     CONN conn;
@@ -42,7 +43,7 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
         return ERROR;
     }
 
-    if (wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length, server_address) != SUCCESS)
+    if (wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length, real_server_s_addr, server_address->sin_port) != SUCCESS)
     {
         return ERROR;
     }
@@ -65,14 +66,14 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
 }
 
 int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, 
-    ssize_t *received_length, uint64_t curr_package_id, uint64_t session_id, struct sockaddr_in *correct_addr)
+    ssize_t *received_length, uint64_t curr_package_id, uint64_t session_id, unsigned long *real_server_s_addr, unsigned short server_port)
 {
     RCVD rcvd;
     // We wait for server response
     do
     {
         memset(response_buff, 0, RESPONSE_BUFF_SIZE);
-        int wait_ret_val = wait_for_server_response(socket_fd, response_buff, RESPONSE_BUFF_SIZE, received_length, correct_addr);
+        int wait_ret_val = wait_for_server_response(socket_fd, response_buff, RESPONSE_BUFF_SIZE, received_length, real_server_s_addr, server_port);
 
         if (wait_ret_val == TIMEOUT_ERROR)
         {
@@ -141,13 +142,13 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff,
     return SUCCESS;
 }
 
-int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t *received_length, int *nbr_of_retransmits, uint64_t curr_package_id, uint64_t session_id, struct sockaddr_in *correct_addr)
+int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t *received_length, int *nbr_of_retransmits, uint64_t curr_package_id, uint64_t session_id, unsigned long *real_server_s_addr, unsigned short server_port)
 {
     // We wait for server response
     do
     {
         memset(response_buff, 0, RESPONSE_BUFF_SIZE);
-        int wait_ret_val = wait_for_server_response(socket_fd, response_buff, RESPONSE_BUFF_SIZE, received_length, correct_addr);
+        int wait_ret_val = wait_for_server_response(socket_fd, response_buff, RESPONSE_BUFF_SIZE, received_length, real_server_s_addr, server_port);
 
         if (wait_ret_val == TIMEOUT_ERROR)
         {
@@ -197,7 +198,8 @@ int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t
 }
 
 int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
-                          socklen_t server_address_len, my_vec_t *vec, uint64_t session_id, int *nbr_of_retransmits)
+                          socklen_t server_address_len, my_vec_t *vec, uint64_t session_id, int *nbr_of_retransmits, 
+                          unsigned long *real_server_s_addr)
 {
     uint32_t bytes_left = vec->occupied_size;
     uint32_t bytes_sent = 0;
@@ -251,7 +253,7 @@ int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
 
         ACC acc;
         int acc_ret_val = UDPR_client_handle_ACC(socket_fd, response_buff, 
-        &acc, &received_length, nbr_of_retransmits, curr_package_id, session_id, server_address);
+        &acc, &received_length, nbr_of_retransmits, curr_package_id, session_id, real_server_s_addr, server_address->sin_port);
 
         if (acc_ret_val == ERROR)
             return ERROR;
@@ -268,8 +270,9 @@ int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
-void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, unsigned long real_server_s_addr)
+void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id)
 {
+    unsigned long real_server_s_addr = 0;
     socklen_t server_address_len = (socklen_t)sizeof(*server_address);
     int nbr_of_retransmits = 0;
     static char response_buffer[RESPONSE_BUFF_SIZE];
@@ -282,7 +285,7 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     {
         memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
 
-        init_ret_val = UDPR_client_init_connection(socket_fd, response_buffer, server_address, server_address_len, session_id, vec->occupied_size);
+        init_ret_val = UDPR_client_init_connection(socket_fd, response_buffer, server_address, server_address_len, session_id, vec->occupied_size, &real_server_s_addr);
 
         if (init_ret_val != SUCCESS)
         {
@@ -299,13 +302,13 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
     // Connection with server was established succesfully, now we will be 
     // sending our data
     printf("Sending data\n"); 
-    if (UDPR_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id, &nbr_of_retransmits) != SUCCESS)
+    if (UDPR_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id, &nbr_of_retransmits, &real_server_s_addr) != SUCCESS)
     {
         return;
     }
 
     // Now we wait for rcvd, we should ignore any acc we got
-    if (UDPR_client_handle_RCVD(socket_fd, response_buffer, &received_length, last_package_idx, session_id, server_address) != SUCCESS)
+    if (UDPR_client_handle_RCVD(socket_fd, response_buffer, &received_length, last_package_idx, session_id, &real_server_s_addr, server_address->sin_port) != SUCCESS)
     {
         make_error_msg(__FUNCTION__, " - client did not receive RCVD msg from server");
         return;

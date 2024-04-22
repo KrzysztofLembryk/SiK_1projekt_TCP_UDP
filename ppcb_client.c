@@ -58,7 +58,6 @@ int main(int argc, char *argv[])
     // the end, allocation happens only after all previous operations were 
     // successful
     my_vec_t *vec = read_stdin();
-    unsigned long real_server_s_addr = 0;
 
     switch (type_of_comm)
     {
@@ -74,10 +73,10 @@ int main(int argc, char *argv[])
             }
             break; 
         case UDP:
-            UDP_client_handler(socket_fd, &server_address, vec, session_id, real_server_s_addr);
+            UDP_client_handler(socket_fd, &server_address, vec, session_id);
             break;
         case UDPR:
-            UDPR_client_handler(socket_fd, &server_address, vec, session_id, real_server_s_addr);
+            UDPR_client_handler(socket_fd, &server_address, vec, session_id);
             break;
         default:
             break;

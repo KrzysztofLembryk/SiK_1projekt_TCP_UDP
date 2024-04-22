@@ -25,6 +25,6 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
                    socklen_t server_address_len,
                    void *data, size_t data_size, const char *function_name);
 
-int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length, struct sockaddr_in *correct_addr);
+int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length, unsigned long *real_server_s_addr, unsigned short server_port);
 
 #endif

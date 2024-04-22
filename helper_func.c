@@ -110,8 +110,10 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
-int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length, struct sockaddr_in *correct_addr)
+int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length, unsigned long *real_server_s_addr, unsigned short server_port)
 {
+    static bool first_wait = true;
+
     while (true)
     {
         memset(response_buffer, 0, buff_size);
@@ -135,12 +137,18 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
                 return ERROR;
             }
         }
-        if (receive_address.sin_addr.s_addr != correct_addr->sin_addr.s_addr ||
-        receive_address.sin_port != correct_addr->sin_port)
+        if (first_wait)
+        {
+            printf("FIRST WAIT, server addres: %u\n", receive_address.sin_addr.s_addr);
+            first_wait = false;
+            *real_server_s_addr = receive_address.sin_addr.s_addr;
+        }
+        if (receive_address.sin_addr.s_addr != *real_server_s_addr ||
+        receive_address.sin_port != server_port)
         {
             printf("---------------------------------------------------\n");
-            printf("received addr s_addr: %u, correct addr s_addr: %u\n", receive_address.sin_addr.s_addr, correct_addr->sin_addr.s_addr);
-            printf("received addre port: %hu, correct addr port: %hu\n", receive_address.sin_port, correct_addr->sin_port);
+            printf("received addr s_addr: %u, correct addr s_addr: %lu\n", receive_address.sin_addr.s_addr, *real_server_s_addr);
+            printf("received addre port: %hu, correct addr port: %hu\n", receive_address.sin_port, server_port);
             printf("---------------------------------------------------\n");
 
             // If we got packet not from our server we ignore it
