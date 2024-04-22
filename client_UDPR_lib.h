@@ -5,6 +5,6 @@
 #include <sys/socket.h>
 #include "my_vec.h"
 
-void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id);
+void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, unsigned long real_server_s_addr);
 
 #endif

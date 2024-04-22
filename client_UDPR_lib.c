@@ -268,7 +268,7 @@ int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
-void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id)
+void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, unsigned long real_server_s_addr)
 {
     socklen_t server_address_len = (socklen_t)sizeof(*server_address);
     int nbr_of_retransmits = 0;

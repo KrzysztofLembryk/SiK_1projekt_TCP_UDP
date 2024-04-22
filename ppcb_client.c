@@ -51,12 +51,14 @@ int main(int argc, char *argv[])
     struct timeval time_o = {.tv_sec = MAX_WAIT, .tv_usec = 0};
     setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &time_o, sizeof time_o);
 
+
     // We read stdin so late since before reading it errors might occur 
     // regarding creating socket/checking comm type etc. So we would need to 
     // deallocate our vector after each error, but now since we read input at
     // the end, allocation happens only after all previous operations were 
     // successful
     my_vec_t *vec = read_stdin();
+    unsigned long real_server_s_addr = 0;
 
     switch (type_of_comm)
     {
@@ -72,10 +74,10 @@ int main(int argc, char *argv[])
             }
             break; 
         case UDP:
-            UDP_client_handler(socket_fd, &server_address, vec, session_id);
+            UDP_client_handler(socket_fd, &server_address, vec, session_id, real_server_s_addr);
             break;
         case UDPR:
-            UDPR_client_handler(socket_fd, &server_address, vec, session_id);
+            UDPR_client_handler(socket_fd, &server_address, vec, session_id, real_server_s_addr);
             break;
         default:
             break;

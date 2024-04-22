@@ -206,7 +206,7 @@ int UDP_client_RCVD_handler(int socket_fd, char *response_buffer,
 }
 
 
-void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id)
+void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, unsigned long real_server_s_addr)
 {
     static char response_buffer[RESPONSE_BUFF_SIZE];
     socklen_t server_address_len = (socklen_t)sizeof(*server_address);
