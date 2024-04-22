@@ -110,7 +110,7 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
-int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length)
+int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length, struct sockaddr_in *correct_addr)
 {
     while (true)
     {

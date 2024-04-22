@@ -75,12 +75,12 @@ int UDP_client_CONN_handler(int socket_fd, struct sockaddr_in *server_address, s
 
 
 int UDP_client_CONACC_handler(int socket_fd, char *response_buffer, 
-    uint64_t session_id)
+    uint64_t session_id, struct sockaddr_in *correct_addr)
 {
     memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
 
     ssize_t received_length;
-    if (wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length) != SUCCESS)
+    if (wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length, correct_addr) != SUCCESS)
     {
         return ERROR;
     }
@@ -169,13 +169,13 @@ int UDP_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
 }
 
 int UDP_client_RCVD_handler(int socket_fd, char *response_buffer, 
-    uint64_t session_id)
+    uint64_t session_id, struct sockaddr_in *correct_addr)
 {
     memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
 
     printf("Waiting for server rcvd\n");
     ssize_t received_length;
-    int wait_ret_val = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length);
+    int wait_ret_val = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length, correct_addr);
 
     if (wait_ret_val != SUCCESS)
     {
@@ -218,8 +218,7 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 
     // Now we wait for server response - whether conacc or conrjt, there might be a possibility that different server will send us message, we need to ignore it thus loop will be needed
 
-    if (UDP_client_CONACC_handler(socket_fd, response_buffer, session_id) != 
-    SUCCESS)
+    if (UDP_client_CONACC_handler(socket_fd, response_buffer, session_id, server_address) != SUCCESS)
     {
         return;
     }
@@ -231,7 +230,7 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     }
 
     // Now we wait for rcvd
-    if (UDP_client_RCVD_handler(socket_fd, response_buffer, session_id) != SUCCESS)
+    if (UDP_client_RCVD_handler(socket_fd, response_buffer, session_id, server_address) != SUCCESS)
         return;
 }
 
