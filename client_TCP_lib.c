@@ -55,6 +55,38 @@ int send_data_wrapper(int socket_fd, DATA *data)
     return SUCCESS;
 }
 
+int check_CONACC(uint64_t session_id, CONACC *conacc)
+{
+    if (conacc->package_type_id != CONACC_ID)
+    {
+        make_error_msg(__FUNCTION__, " - received CONACC packet has wrong package_type_id");
+        return ERROR;
+    }
+    else if (conacc->session_id != session_id)
+    {
+        make_error_msg(__FUNCTION__, " - received CONACC packet has wrong session id");
+        return ERROR;
+    }
+    else
+        return SUCCESS;
+}
+
+int check_RCVD(uint64_t session_id, RCVD *rcvd)
+{
+    if (rcvd->package_type_id != RCVD_ID)
+    {
+        make_error_msg(__FUNCTION__, " - received RCVD packet has wrong package_type_id");
+        return ERROR;
+    }
+    else if (rcvd->session_id != session_id)
+    {
+        make_error_msg(__FUNCTION__, " - received RCVD packet has wrong session id");
+        return ERROR;
+    }
+    else
+        return SUCCESS;
+}
+
 int TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
 {
     uint32_t bytes_left = vec->occupied_size;
@@ -66,7 +98,7 @@ int TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
 
     while (bytes_sent != vec->occupied_size)
     {
-        memset(buff, 0, sizeof(buff));
+        memset(buff, 0, SEND_BUFF_SIZE);
         
         if (bytes_left < SEND_BUFF_SIZE)
         {
@@ -103,7 +135,7 @@ int TCP_client_send_DATA(int socket_fd, my_vec_t *vec, uint64_t session_id)
     return SUCCESS;
 }
 
-void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, unsigned int session_id)
+void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id)
 {
     // Connect to the server.
     if (connect(socket_fd, (struct sockaddr *) server_address,
@@ -120,7 +152,6 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         return;
 
     ntoh_CONN(&conn);
-
     CONACC conacc;
     ssize_t read_length = readn(socket_fd, &conacc, sizeof(conacc));
 
@@ -128,11 +159,12 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         return;
 
     ntoh_CONACC(&conacc);
-    printf("ssleep(5)");
-    sleep(5);
     printf("Sending data\n");
 
     if (TCP_client_send_DATA(socket_fd, vec, session_id) != SUCCESS)
+        return;
+    
+    if (check_CONACC(session_id, &conacc) != SUCCESS)
         return;
 
     RCVD rcvd;
@@ -141,8 +173,11 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     if (readn_error_handler(read_length, sizeof (rcvd)) != SUCCESS)
         return;
 
-    // Session id might be different in received data since we didnt invoke
-    // ntoh function for RCVD
+    ntoh_RCVD(&rcvd);
+
+    if (check_RCVD(session_id, &rcvd) != SUCCESS)
+        return;
+
     printf("RCVD id: %d, RJT id: %d\n", RCVD_ID, RJT_ID);
     print_RCVD(&rcvd);
 

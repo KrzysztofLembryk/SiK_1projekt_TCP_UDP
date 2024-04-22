@@ -19,40 +19,44 @@
 #include "server_TCP_lib.h"
 #include "constants.h"
 
-
+// - Function waits for new client on accept
+// - Function sets sockaddr_in *client_address to client who was accepted
+// - Function sets int *c_fd to returned client descriptor by accept
+// - On success function returns SUCCESS, otherwise ERROR
 int TCP_wait_for_client(int socket_fd, int *c_fd, 
                         struct sockaddr_in *client_address)
 {
     socklen_t server_addr_len = (socklen_t)sizeof(*client_address); 
+
     // We wait for client that wants to connect with us on accept function
     int client_fd = accept(socket_fd, (struct sockaddr *) client_address,
                             &server_addr_len);
 
     if (client_fd < 0) 
     {
-        // close(socket_fd);
         make_error_msg(__FUNCTION__, " - client_fd < 0");
         return ERROR;
     }
     
-    char const *client_ip = inet_ntoa(client_address.sin_addr);
-    uint16_t client_port = ntohs(client_address.sin_port);
+    char const *client_ip = inet_ntoa(client_address->sin_addr);
+    uint16_t client_port = ntohs(client_address->sin_port);
 
-    printf("accepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
+    printf("\n####\naccepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
 
     *c_fd = client_fd;
     return SUCCESS;
 }
 
-// Function handles initialization of connection with client. It waits for data
-// of type CONN, reads it, and checks whether read data has package_type equal
-// to CONN_ID if not, it returns -2. It also checks whether read data has 
-// correct protocol equal to TCP_PROTOCOL
+// - Function handles initialization of connection with client. 
+// - It waits for CONN packet for MAX_WAIT seconds
+// - It checks if received CONN packet has correct package_type_id, protocol_id
+// - It checks if nbr of read bytes is equal to sizeof(CONN)
+// - It returns ERROR if sth is wrong, otherwise SUCCESS
 int TCP_handle_conn_init(CONN *conn, int client_fd)
 {
     ssize_t read_length = readn(client_fd, conn, sizeof (*conn));
 
-    if (readn_error_handler(read_length, sizeof (*conn)) != 0)
+    if (readn_error_handler(read_length, sizeof (*conn)) != SUCCESS)
         return ERROR;
 
     if (conn->package_type_id != CONN_ID)
@@ -73,42 +77,20 @@ int TCP_handle_conn_init(CONN *conn, int client_fd)
     return SUCCESS;
 }
 
-
-int TCP_send_CONACC_to_client(int client_fd, CONACC *conacc)
-{
-    ssize_t written_length = writen(client_fd, conacc, sizeof (*conacc));
-    if (written_length < 0 )
-    {
-        make_error_msg(__FUNCTION__, " - writen returned < 0");
-        return ERROR;
-    }
-    if ((size_t) written_length < sizeof (*conacc)) 
-    {
-        make_error_msg(__FUNCTION__, " - writen-wrote less than wanted size");
-        return ERROR;
-    }
-    else 
-    {
-        return SUCCESS;
-    }
-}
-
-// Function reads only metadata about upcoming data (it also converts
-// data_metainfo from network to host byte order), meaning only:
-// - uint8_t package_type_id;
-// - uint64_t session_id;
-// - uint64_t package_id;
-// - uint32_t nbr_of_bytes_in_packet; 
-// without real data that is being sent, so that we can quickly check if data 
-// parameters are correct (i.e if we get consecutive package_id) without wasting
-// time and reading all data even though its incorrect
+// - Function reads only metadata from received DATA packet meaning only:
+// - uint8_t package_type_id; uint64_t session_id; 
+// uint64_t package_id; uint32_t nbr_of_bytes_in_packet; 
+// - Function checks if values of above parameters of DATA packet are correct
+// - Function returns ERROR if any of above parameters is incorrect, otherwise 
+// SUCCESS
+// - Function changes network byte order to host order of read data_info packet
 int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo, 
                             uint64_t session_id, uint64_t curr_packet_id)
 {
     ssize_t read_length = readn(client_fd, data_metainfo, 
                                                     sizeof (*data_metainfo));
 
-    if (readn_error_handler(read_length, sizeof (*data_metainfo)) != 0)
+    if (readn_error_handler(read_length, sizeof (*data_metainfo)) != SUCCESS)
         return ERROR;
 
     ntoh_DATA_INFO(data_metainfo);
@@ -132,52 +114,65 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
     return SUCCESS;
 }
 
-int TCP_send_RJT(int client_fd, RJT *rjt)
+// - Function sends given packet of size packet_size to client_fd using writen
+// - Function returns ERROR when writen returns <= 0 (also handles EPIPE) or 
+// when writen size is not equal packet_size, otherwise it returns SUCCESS
+int TCP_send_packet(void *packet, size_t packet_size, int client_fd)
 {
-    ssize_t written_length = writen(client_fd, rjt, sizeof (*rjt));
+    ssize_t written_length = writen(client_fd, packet, packet_size);
+
     if (written_length < 0 )
     {
-        error("TCP-send_RJT-writen returned < 0\n");
+        if (errno == EPIPE)
+            make_error_msg(__FUNCTION__, " - writen < 0 --> SIGPIPE signal in write, client closed reading end of socket before server could send msg");
+        else
+            make_error_msg(__FUNCTION__, " - writen returned < 0");
         return ERROR;
     }
-    if ((size_t) written_length < sizeof (*rjt)) 
+    if ((size_t) written_length < packet_size) 
     {
-        error("TCP-send_RJT_to_client-writen-wrote less than wanted size\n");
+        make_error_msg(__FUNCTION__, " - writen-wrote less than wanted size");
         return ERROR;
     }
-    else 
+    if (written_length == 0)
     {
-        printf("RJT reply sent\n");
-        return SUCCESS;
+        make_error_msg(__FUNCTION__, " - writen len == 0");
+        return ERROR;
     }
+
+    return SUCCESS;
 }
 
-int TCP_send_RCVD(int client_fd, RCVD *rcvd)
+void handle_RJT_sending(int client_fd, CONN *conn, uint64_t curr_packet_id)
 {
-    ssize_t written_length = writen(client_fd, rcvd, sizeof (*rcvd));
-    if (written_length < 0 )
-    {
-        error("TCP-send_RCVD-writen returned < 0\n");
-        return ERROR;
-    }
-    if ((size_t) written_length < sizeof (*rcvd)) 
-    {
-        error("TCP-send_RCVD_to_client-writen-wrote less than wanted size\n");
-        return ERROR;
-    }
-    else 
-    {
-        printf("RCVD reply sent\n");
-        return SUCCESS;
-    }
+    static RJT rjt;
+
+    init_RJT(&rjt, conn->session_id, curr_packet_id);
+
+    TCP_send_packet(&rjt, sizeof(rjt), client_fd);
+
+    close(client_fd);
 }
 
-void TCP_read_data_to_buf(int client_fd, char *buf, 
+// - Function reads nbr_of_bytes_in_packet to buf using readn
+// - Function checks if nbr of read bytes is equal to nbr_of_bytes_in_packet
+// - If its not it returns ERROR, it also returns ERROR when read_bytes < 0
+// otherwise it returns SUCCESS
+int TCP_read_data_to_buf(int client_fd, char *buf, 
                                         uint32_t nbr_of_bytes_in_packet)
 {
-    ssize_t len = readn(client_fd, buf, nbr_of_bytes_in_packet);
-    if (len < 0)
-        error("readn");
+    ssize_t read_bytes = readn(client_fd, buf, nbr_of_bytes_in_packet);
+    if (read_bytes < 0)
+    {
+        make_error_msg(__FUNCTION__, " - readn < 0");
+        return ERROR;
+    }
+    if (read_bytes != nbr_of_bytes_in_packet)
+    {
+        make_error_msg(__FUNCTION__, " - nbr of bytes read is not equal to nbr of bytes that should be in DATA packet");
+        return ERROR;
+    }
+    return SUCCESS;
 }
 
 void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len)
@@ -186,6 +181,14 @@ void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len
     // printf("[packet: %" PRIu64 "]:\n", package_id);
 }
 
+// - Function handles TCP communication with clients
+// - If client connects to our server and makes server wait for packet more
+// than MAX_WAIT seconds, server ends connection with client
+// - If client sends data with wrong meta info, or sends wrong type of packet
+// not following established protocol, server ends connection
+// - If communication was successful server sends RCVD packet and ends 
+// connection
+// - Server closes clients' file descriptors after ending connections
 void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int queue_len)
 {
     // Since its TCP server we switch its socket to listening
@@ -202,8 +205,10 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
     while(true)
     {
         int client_fd = -1;
-        struct sockaddr_in client_address;
+        static struct sockaddr_in client_address;
 
+        // If accepting client was not successful we continue and wait again
+        // since we don't want to stop server from working
         if (TCP_wait_for_client(socket_fd, &client_fd, &client_address) != SUCCESS)
         {
             continue;
@@ -215,11 +220,11 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
         // Now we want to receive CONN packet with package_type = CONN_ID and
         // protocol_id = TCP_PROTOCOL to establish connection with client
-        CONN conn;
+        static CONN conn;
         conn.package_type_id = 77;
 
-        // We didnt receive correct CONN packet thus we end connection with
-        // client and move on 
+        // If dont receive correct CONN packet we end connection with client
+        // and move on.
         if (TCP_handle_conn_init(&conn, client_fd) != SUCCESS)
         {
             close(client_fd);
@@ -229,11 +234,12 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         ntoh_CONN(&conn);
         print_CONN(&conn);
 
-        CONACC conacc;
-        init_CONACC(&conacc, conn.session_id);
-        int conacc_ret_val = TCP_send_CONACC_to_client(client_fd, &conacc);
+        // We send CONACC to client to tell him we accepted his connection
+        static CONACC conacc;
 
-        if (conacc_ret_val != 0)
+        init_CONACC(&conacc, conn.session_id);
+
+        if (TCP_send_packet(&conacc, sizeof(conacc), client_fd) != SUCCESS)
         {
             close(client_fd);
             continue;
@@ -251,21 +257,17 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         // there is some error
         while (nbr_of_bytes_received < total_nbr_of_bytes_to_be_sent)
         {
-            DATA_INFO_t data_metainfo; 
+            static DATA_INFO_t data_metainfo; 
 
+            // If received packet was incorrect we send RJT to client and 
+            // close connection
             if (TCP_get_DATA_metainfo(client_fd, &data_metainfo, 
                 conn.session_id, curr_packet_id) != SUCCESS)
             {
-                // If received packet was incorrect we send RJT to client and 
-                // close connection
                 wrong_packet_err = true;
-                RJT rjt;
 
-                init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
+                handle_RJT_sending(client_fd, &conn, curr_packet_id);
 
-                TCP_send_RJT(client_fd, &rjt);
-
-                close(client_fd);
                 break;
             }
 
@@ -275,30 +277,36 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
             if (nbr_of_bytes_received > total_nbr_of_bytes_to_be_sent) 
             {
-                make_error_msg(__FUNCTION__, "- Client sent more data than declared");
                 wrong_packet_err = true;
-                RJT rjt;
 
-                init_RJT(&rjt, conn.session_id, data_metainfo.package_id);
+                handle_RJT_sending(client_fd, &conn, curr_packet_id);
+                make_error_msg(__FUNCTION__, "- Client sent more data than declared");
 
-                TCP_send_RJT(client_fd, &rjt);
-
-                close(client_fd);
                 break;
             }
 
+            curr_packet_id++;
             memset(buff, 0, sizeof(buff));
-            TCP_read_data_to_buf(client_fd, buff, data_metainfo.nbr_of_bytes_in_packet);
+
+            if (TCP_read_data_to_buf(client_fd, buff, data_metainfo.nbr_of_bytes_in_packet) != SUCCESS)
+            {
+                wrong_packet_err = true;
+
+                handle_RJT_sending(client_fd, &conn, curr_packet_id);
+
+                break;
+            }
             TCP_print_data_to_stdout(buff, data_metainfo.package_id, data_metainfo.nbr_of_bytes_in_packet);
         }
 
         if (wrong_packet_err)
             continue;
 
+        // HERE WE SHOULD CHECK WHETHER CLIENT SENT sth more
         // Communication was succesful thus we send RCVD to client
-        RCVD rcvd;
+        static RCVD rcvd;
         init_RCVD(&rcvd, conn.session_id);
-        TCP_send_RCVD(client_fd, &rcvd);
+        TCP_send_packet(&rcvd, sizeof(rcvd), client_fd);
         close(client_fd);
     }
 }

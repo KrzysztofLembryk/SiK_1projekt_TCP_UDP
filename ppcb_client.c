@@ -11,6 +11,7 @@
 #include "helper_func.h"
 #include "client_TCP_lib.h"
 #include "client_UDP_lib.h"
+#include "client_tests_lib.h"
 
 my_vec_t *read_stdin()
 {
@@ -29,7 +30,10 @@ int main(int argc, char *argv[])
         fatal("usage: %s <protocol type> (<host> <port>) or <server address:port>", argv[0]);
 
     srand(time(NULL));   
-    unsigned int session_id = rand();      
+
+    uint32_t session_id_significant = rand();      
+    uint32_t session_id_less_significant = rand();      
+    uint64_t session_id = (uint64_t) session_id_significant << 32 | session_id_less_significant;
 
     communication_type type_of_comm = check_communication_type(argv[1]);
     const char *host = argv[2];
@@ -56,7 +60,15 @@ int main(int argc, char *argv[])
     switch (type_of_comm)
     {
         case TCP:
-            TCP_client_handler(socket_fd, &server_address, vec, session_id);
+            if (DO_TESTS)
+            {
+                printf("DOING TCP TESTING!!!!\n");
+                TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, true);
+            }
+            else
+            {
+                TCP_client_handler(socket_fd, &server_address, vec, session_id);
+            }
             break; 
         case UDP:
             UDP_client_handler(socket_fd, &server_address, vec, session_id);

@@ -1,6 +1,9 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+// -----DO TESTS CONSTANT-----
+#define DO_TESTS 0
+
 // -----TCP SERVER QUEUE LEN-----
 
 #define QUEUE_LEN 5
@@ -24,7 +27,7 @@
 // -----BUFFORS SIZES-----
 
 // #define SEND_BUFF_SIZE 32000
-#define SEND_BUFF_SIZE 25
+#define SEND_BUFF_SIZE 120
 #define RECEIVE_BUFFOR_SIZE 64032
 
 // -----RETURN VALUES and ERROR VALUES-----
