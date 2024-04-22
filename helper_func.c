@@ -7,6 +7,9 @@
 #include "constants.h"
 #include "err.h"
 
+// - Function given char input checks whether it is equal to 'tcp', 'udp' or 
+// 'udpr' if yes it return communication_type value: TCP, UDP or UDPR
+// - Otherwise function invokes fatal()
 communication_type check_communication_type(const char* input)
 {
     if (strcmp(input, "tcp") == 0)
@@ -19,6 +22,9 @@ communication_type check_communication_type(const char* input)
         fatal("given protocol type is not tcp nor udp nor udpr\n");
 }
 
+// - Function depending on type value creates either TCP socket or UDP socket
+// - Function sets *socket_fd to returned by socket() value
+// - If socket() returned < 0 function invokes syserr()
 void init_socket_fd(int *socket_fd, communication_type type)
 {
     if (type == TCP)
@@ -34,6 +40,7 @@ void init_socket_fd(int *socket_fd, communication_type type)
     }
 }
 
+// - Function sets timeout equl to max_wait for TCP client socket
 void set_timeout_for_client_socket(int client_fd, int max_wait)
 {
     // Set timeouts for the client socket so that we could prevent one 
@@ -43,6 +50,9 @@ void set_timeout_for_client_socket(int client_fd, int max_wait)
     setsockopt(client_fd, SOL_SOCKET, SO_SNDTIMEO, &time_o, sizeof time_o);
 }
 
+// - Function handles errors connected with usage of readn function and makes
+// error msg accordingly to given error.
+// - Function returns ERROR if error was encountered, SUCCESS otherwise
 int readn_error_handler(ssize_t read_length, size_t data_size)
 {
     if (read_length < 0)
@@ -72,6 +82,8 @@ int readn_error_handler(ssize_t read_length, size_t data_size)
     return SUCCESS;
 }
 
+// - Function is wrapper for error() function that takes func_name and msg to
+// be printed in stderr
 void make_error_msg(const char *func_name, const char *msg)
 {
     static char text[200];
@@ -82,12 +94,17 @@ void make_error_msg(const char *func_name, const char *msg)
     error(text);
 }
 
+// - Function prints buff_len bytes from buff to stdout, function flushes stdout
+// to make sure printf() prints wanted bytes
 void print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len)
 {
     printf("[packet: %" PRIu64 "]:\n%.*s\n", package_id, (int)buff_len, buff);
+    fflush(stdout);
     // printf("[packet: %" PRIu64 "]:\n", package_id);
 }
 
+// - Function sends data using sendto() and handles errors returned by it
+// - If no errors functions returns SUCCESS, otherwise ERROR
 int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
                    socklen_t server_address_len,
                    void *data, size_t data_size, const char *function_name)
@@ -109,6 +126,12 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
+// - Function uses recvfrom() to wait for data
+// - Function handles errors returned by recvfrom
+// - Function also handles case when data is being sent from someone with whom
+// connection was not established and prints according error and ignores this 
+// data (real_server_s_addr and server_port are needed for checking this)
+// - If no errors occured returns SUCCESS, otherwise ERROR
 int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length, unsigned long *real_server_s_addr, unsigned short server_port)
 {
     static bool first_wait = true;
