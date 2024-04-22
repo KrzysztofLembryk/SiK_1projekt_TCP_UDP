@@ -82,9 +82,7 @@ int UDP_client_CONACC_handler(int socket_fd, char *response_buffer,
     memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
 
     ssize_t received_length;
-    int wait_ret_val = wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length);
-
-    if (wait_ret_val != SUCCESS)
+    if (wait_for_server_response(socket_fd, response_buffer, RESPONSE_BUFF_SIZE, &received_length) != SUCCESS)
     {
         return ERROR;
     }
@@ -221,10 +219,12 @@ void UDP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     }
 
     // Now we wait for server response - whether conacc or conrjt, there might be a possibility that different server will send us message, we need to ignore it thus loop will be needed
-    int conacc_ret_val = UDP_client_CONACC_handler(socket_fd, response_buffer, session_id);
 
-    if (conacc_ret_val != SUCCESS)
+    if (UDP_client_CONACC_handler(socket_fd, response_buffer, session_id) != 
+    SUCCESS)
+    {
         return;
+    }
 
     printf("Sending data\n");
     if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
