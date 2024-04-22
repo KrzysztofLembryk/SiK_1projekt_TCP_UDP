@@ -12,15 +12,15 @@
 #include "protconst.h"
 #include "client_UDPR_lib.h"
 
-
 // ----------UDPR CLIENT FUNCTIONS----------
 
-// - Function tries to establish connection with server by sending CONN and 
+// - Function tries to establish connection with server by sending CONN and
 // waiting to receive CONACC.
 // - If any error occured function returns ERROR, otherwise if connection was
 // established returns SUCCESS
-int UDPR_client_init_connection(int socket_fd, char *response_buffer,
-                                struct sockaddr_in *server_address, 
+int UDPR_client_init_connection(int socket_fd,
+                                char *response_buffer,
+                                struct sockaddr_in *server_address,
                                 socklen_t server_address_len,
                                 uint64_t session_id,
                                 uint64_t occupied_size,
@@ -33,7 +33,7 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
     printf("to server: %u, port %hu\n", server_address->sin_addr.s_addr, server_address->sin_port);
 
     if (sendto_wrapper(socket_fd, server_address, server_address_len,
-                   &conn, sizeof(conn), __FUNCTION__) != SUCCESS)
+                       &conn, sizeof(conn), __FUNCTION__) != SUCCESS)
     {
         // char msg[100];
         // strcpy(msg, __FUNCTION__);
@@ -50,11 +50,11 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
 
     CONACC conacc;
 
-    printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc), 
-        (size_t)received_length);
+    printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc),
+           (size_t)received_length);
 
-    cast_buff_to(&conacc, sizeof(conacc), response_buffer, 
-                                                (size_t)received_length);
+    cast_buff_to(&conacc, sizeof(conacc), response_buffer,
+                 (size_t)received_length);
     ntoh_CONACC(&conacc);
 
     if (conacc.package_type_id != CONACC_ID || conacc.session_id != session_id)
@@ -65,8 +65,13 @@ int UDPR_client_init_connection(int socket_fd, char *response_buffer,
     return SUCCESS;
 }
 
-int UDPR_client_handle_RCVD(int socket_fd, char *response_buff, 
-    ssize_t *received_length, uint64_t curr_package_id, uint64_t session_id, unsigned long *real_server_s_addr, unsigned short server_port)
+int UDPR_client_handle_RCVD(int socket_fd,
+                            char *response_buff,
+                            ssize_t *received_length,
+                            uint64_t curr_package_id,
+                            uint64_t session_id,
+                            unsigned long *real_server_s_addr,
+                            unsigned short server_port)
 {
     RCVD rcvd;
     // We wait for server response
@@ -85,7 +90,7 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff,
         }
         else if (wait_ret_val == ERROR)
         {
-            // Recvfrom was < 0 
+            // Recvfrom was < 0
             return ERROR;
         }
         // there will be another case: (but not impl yet)
@@ -96,7 +101,7 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff,
         ntoh_RCVD(&rcvd);
 
         // We could get ACC package instead of RCVD, if so we ignore it if its
-        // correct ACC package, if not, we get error and end connection since 
+        // correct ACC package, if not, we get error and end connection since
         // such behaviour is against protocol
         if (rcvd.package_type_id == ACC_ID)
         {
@@ -104,7 +109,7 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff,
             {
                 ACC acc;
 
-                cast_buff_to(&acc, sizeof(acc), response_buff, *received_length); 
+                cast_buff_to(&acc, sizeof(acc), response_buff, *received_length);
                 ntoh_ACC(&acc);
 
                 if (acc.package_id > curr_package_id)
@@ -142,7 +147,15 @@ int UDPR_client_handle_RCVD(int socket_fd, char *response_buff,
     return SUCCESS;
 }
 
-int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t *received_length, int *nbr_of_retransmits, uint64_t curr_package_id, uint64_t session_id, unsigned long *real_server_s_addr, unsigned short server_port)
+int UDPR_client_handle_ACC(int socket_fd,
+                           char *response_buff,
+                           ACC *acc,
+                           ssize_t *received_length,
+                           int *nbr_of_retransmits,
+                           uint64_t curr_package_id,
+                           uint64_t session_id,
+                           unsigned long *real_server_s_addr,
+                           unsigned short server_port)
 {
     // We wait for server response
     do
@@ -162,7 +175,7 @@ int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t
         }
         else if (wait_ret_val == ERROR)
         {
-            // Recvfrom was < 0 
+            // Recvfrom was < 0
             return ERROR;
         }
 
@@ -171,7 +184,7 @@ int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t
         {
             // No matter how many conacc we get, we ignore all of them since we
             // established connection with server, thus we wait for ACC
-            // (even though some conacc might have wrong session id, we ignore 
+            // (even though some conacc might have wrong session id, we ignore
             // them nonetheless)
             continue;
         }
@@ -185,7 +198,7 @@ int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t
         if (acc->package_id < curr_package_id)
         {
             // We could get good ACC but with old package_id thus we ignore it
-            // and wait for next ACC with good package_id 
+            // and wait for next ACC with good package_id
             continue;
         }
         if (acc->package_id > curr_package_id)
@@ -197,8 +210,12 @@ int UDPR_client_handle_ACC(int socket_fd, char *response_buff, ACC *acc, ssize_t
     return SUCCESS;
 }
 
-int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
-                          socklen_t server_address_len, my_vec_t *vec, uint64_t session_id, int *nbr_of_retransmits, 
+int UDPR_client_send_DATA(int socket_fd,
+                          struct sockaddr_in *server_address,
+                          socklen_t server_address_len,
+                          my_vec_t *vec,
+                          uint64_t session_id,
+                          int *nbr_of_retransmits,
                           unsigned long *real_server_s_addr)
 {
     uint32_t bytes_left = vec->occupied_size;
@@ -252,8 +269,8 @@ int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
         }
 
         ACC acc;
-        int acc_ret_val = UDPR_client_handle_ACC(socket_fd, response_buff, 
-        &acc, &received_length, nbr_of_retransmits, curr_package_id, session_id, real_server_s_addr, server_address->sin_port);
+        int acc_ret_val = UDPR_client_handle_ACC(socket_fd, response_buff,
+                                                 &acc, &received_length, nbr_of_retransmits, curr_package_id, session_id, real_server_s_addr, server_address->sin_port);
 
         if (acc_ret_val == ERROR)
             return ERROR;
@@ -270,7 +287,10 @@ int UDPR_client_send_DATA(int socket_fd, struct sockaddr_in *server_address,
     return SUCCESS;
 }
 
-void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id)
+void UDPR_client_handler(int socket_fd,
+                         struct sockaddr_in *server_address,
+                         my_vec_t *vec,
+                         uint64_t session_id)
 {
     unsigned long real_server_s_addr = 0;
     socklen_t server_address_len = (socklen_t)sizeof(*server_address);
@@ -298,10 +318,10 @@ void UDPR_client_handler(int socket_fd, struct sockaddr_in *server_address, my_v
             continue;
         }
     } while (init_ret_val != SUCCESS);
-    
-    // Connection with server was established succesfully, now we will be 
+
+    // Connection with server was established succesfully, now we will be
     // sending our data
-    printf("Sending data\n"); 
+    printf("Sending data\n");
     if (UDPR_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id, &nbr_of_retransmits, &real_server_s_addr) != SUCCESS)
     {
         return;
