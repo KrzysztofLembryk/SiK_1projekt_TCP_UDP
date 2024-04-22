@@ -13,52 +13,52 @@
 
 #define RESPONSE_BUFF_SIZE 200
 
-int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
-                   socklen_t server_address_len,
-                   void *data, size_t data_size, const char *function_name)
-{
-    ssize_t sent_length = sendto(socket_fd, data, data_size,
-                                 SEND_FLAGS,
-                                 (struct sockaddr *)server_address,
-                                 server_address_len);
-    if (sent_length < 0)
-    {
-        make_error_msg(function_name, " - sent len < 0");
-        return ERROR;
-    }
-    else if ((size_t)sent_length != data_size)
-    {
-        make_error_msg(function_name, " - sent_len not equal to size of data we wanted to send");
-        return ERROR;
-    }
-    return SUCCESS;
-}
+// int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
+//                    socklen_t server_address_len,
+//                    void *data, size_t data_size, const char *function_name)
+// {
+//     ssize_t sent_length = sendto(socket_fd, data, data_size,
+//                                  SEND_FLAGS,
+//                                  (struct sockaddr *)server_address,
+//                                  server_address_len);
+//     if (sent_length < 0)
+//     {
+//         make_error_msg(function_name, " - sent len < 0");
+//         return ERROR;
+//     }
+//     else if ((size_t)sent_length != data_size)
+//     {
+//         make_error_msg(function_name, " - sent_len not equal to size of data we wanted to send");
+//         return ERROR;
+//     }
+//     return SUCCESS;
+// }
 
-int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length)
-{
-    memset(response_buffer, 0, buff_size);
+// int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length)
+// {
+//     memset(response_buffer, 0, buff_size);
 
-    struct sockaddr_in receive_address;
-    socklen_t server_address_len = (socklen_t)sizeof(receive_address);
+//     struct sockaddr_in receive_address;
+//     socklen_t server_address_len = (socklen_t)sizeof(receive_address);
 
-    *received_length = recvfrom(socket_fd, response_buffer, buff_size, RECEIVE_FLAGS, (struct sockaddr *)&receive_address,
-                                       (socklen_t *)&server_address_len);
+//     *received_length = recvfrom(socket_fd, response_buffer, buff_size, RECEIVE_FLAGS, (struct sockaddr *)&receive_address,
+//                                        (socklen_t *)&server_address_len);
 
-    if (*received_length < 0)
-    {
-        if (errno == EAGAIN)
-        {
-            make_error_msg(__FUNCTION__, " - timeout");
-            return TIMEOUT_ERROR;
-        }
-        else
-        {
-            make_error_msg(__FUNCTION__, " - recvfrom < 0");
-            return ERROR;
-        }
-    }
-    return SUCCESS;
-}
+//     if (*received_length < 0)
+//     {
+//         if (errno == EAGAIN)
+//         {
+//             make_error_msg(__FUNCTION__, " - timeout");
+//             return TIMEOUT_ERROR;
+//         }
+//         else
+//         {
+//             make_error_msg(__FUNCTION__, " - recvfrom < 0");
+//             return ERROR;
+//         }
+//     }
+//     return SUCCESS;
+// }
 
 int UDP_client_CONN_handler(int socket_fd, struct sockaddr_in *server_address, socklen_t server_address_len, uint64_t session_id, uint64_t occupied_size)
 {

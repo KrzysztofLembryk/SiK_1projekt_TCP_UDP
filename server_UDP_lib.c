@@ -83,26 +83,26 @@ int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
     return SUCCESS;
 }
 
-int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
-                socklen_t client_address_len,  
-                void *data, size_t data_size, const char *function_name)
-{
-    ssize_t sent_length = sendto(socket_fd, data, data_size,
-                                 DEFAULT_FLAG,
-                                 (struct sockaddr *)client_address,
-                                 client_address_len);
-    if (sent_length < 0)
-    {
-        make_error_msg(function_name, " - sent len < 0");
-        return ERROR;
-    }
-    else if ((size_t)sent_length != data_size)
-    {
-        make_error_msg(function_name, " - sent_len not equal to size of data we wanted to send");
-        return ERROR;
-    }
-    return SUCCESS;
-}
+// int sendto_wrapper(int socket_fd, struct sockaddr_in *client_address,
+//                 socklen_t client_address_len,  
+//                 void *data, size_t data_size, const char *function_name)
+// {
+//     ssize_t sent_length = sendto(socket_fd, data, data_size,
+//                                  DEFAULT_FLAG,
+//                                  (struct sockaddr *)client_address,
+//                                  client_address_len);
+//     if (sent_length < 0)
+//     {
+//         make_error_msg(function_name, " - sent len < 0");
+//         return ERROR;
+//     }
+//     else if ((size_t)sent_length != data_size)
+//     {
+//         make_error_msg(function_name, " - sent_len not equal to size of data we wanted to send");
+//         return ERROR;
+//     }
+//     return SUCCESS;
+// }
 
 int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {

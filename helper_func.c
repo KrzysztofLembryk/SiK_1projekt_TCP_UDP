@@ -1,10 +1,11 @@
 #include "helper_func.h"
-#include "err.h"
 #include <sys/socket.h>
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include "constants.h"
+#include "err.h"
 
 communication_type check_communication_type(const char* input)
 {
@@ -86,4 +87,64 @@ void print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len)
 {
     printf("[packet: %" PRIu64 "]:\n%.*s\n", package_id, (int)buff_len, buff);
     // printf("[packet: %" PRIu64 "]:\n", package_id);
+}
+
+int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
+                   socklen_t server_address_len,
+                   void *data, size_t data_size, const char *function_name)
+{
+    ssize_t sent_length = sendto(socket_fd, data, data_size,
+                                 SEND_FLAGS,
+                                 (struct sockaddr *)server_address,
+                                 server_address_len);
+    if (sent_length < 0)
+    {
+        make_error_msg(function_name, " - sent len < 0");
+        return ERROR;
+    }
+    else if ((size_t)sent_length != data_size)
+    {
+        make_error_msg(function_name, " - sent_len not equal to size of data we wanted to send");
+        return ERROR;
+    }
+    return SUCCESS;
+}
+
+int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length)
+{
+    while (true)
+    {
+        memset(response_buffer, 0, buff_size);
+
+        struct sockaddr_in receive_address;
+        socklen_t server_address_len = (socklen_t)sizeof(receive_address);
+
+        *received_length = recvfrom(socket_fd, response_buffer, buff_size, RECEIVE_FLAGS, (struct sockaddr *)&receive_address,
+                                        (socklen_t *)&server_address_len);
+
+        if (*received_length < 0)
+        {
+            if (errno == EAGAIN)
+            {
+                make_error_msg(__FUNCTION__, " - timeout");
+                return TIMEOUT_ERROR;
+            }
+            else
+            {
+                make_error_msg(__FUNCTION__, " - recvfrom < 0");
+                return ERROR;
+            }
+        }
+        if (receive_address.sin_addr.s_addr != correct_addr->sin_addr.s_addr ||
+        receive_address.sin_port != correct_addr->sin_port)
+        {
+            // If we got packet not from our server we ignore it
+            make_error_msg(__FUNCTION__, " - got msg not from my server, ignoring it");
+            continue;
+        }
+
+        return SUCCESS;
+    }
+
+    return SUCCESS;
 }
