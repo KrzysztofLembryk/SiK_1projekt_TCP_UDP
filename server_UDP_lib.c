@@ -109,6 +109,8 @@ int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {
     cast_buff_to(conn, sizeof(*conn), buff, (size_t)read_bytes);
     ntoh_CONN(conn);
+    printf("\n####\n");
+    printf("ACCEPTING CONN\n");
     print_CONN(conn);
 
     if (read_bytes != sizeof(*conn))

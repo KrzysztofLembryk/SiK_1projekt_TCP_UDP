@@ -25,7 +25,6 @@ void init_socket_fd(int *socket_fd, communication_type type)
         *socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     else
     {
-        printf("Creating UDP socket\n");
         *socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
     }
 

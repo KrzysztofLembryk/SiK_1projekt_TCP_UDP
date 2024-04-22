@@ -73,7 +73,14 @@ int main(int argc, char *argv[])
             }
             break; 
         case UDP:
-            UDP_client_handler(socket_fd, &server_address, vec, session_id);
+            if (DO_TESTS)
+            {
+                TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, false);
+            }
+            else
+            {
+                UDP_client_handler(socket_fd, &server_address, vec, session_id);
+            }
             break;
         case UDPR:
             UDPR_client_handler(socket_fd, &server_address, vec, session_id);
