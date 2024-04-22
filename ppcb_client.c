@@ -11,6 +11,7 @@
 #include "helper_func.h"
 #include "client_TCP_lib.h"
 #include "client_UDP_lib.h"
+#include "client_UDPR_lib.h"
 #include "client_tests_lib.h"
 
 my_vec_t *read_stdin()
