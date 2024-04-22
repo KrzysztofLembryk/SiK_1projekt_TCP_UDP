@@ -188,8 +188,8 @@ void TCP_send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address,
     int i = 1;
     CONN conn;
     int socket_fd = init_socket_fd;
-
-    while (true)
+ 
+    while (i <= 8)
     {
         // printf("connecting to server\n\n");
         fflush(stdout);
@@ -358,6 +358,7 @@ void TCP_send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address,
 
                 init_DATA(&data, session_id, 0, 5, vec->buff);
                 TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + 26);
+                sleep(2);
             }
             break;
         default:
@@ -700,7 +701,7 @@ void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_
             }
             else
             {
-                // UDP_send_WRONG_CONN(socket_fd, server_address, vec, session_id);
+                UDP_send_WRONG_CONN(socket_fd, server_address, vec, session_id);
             }
             break;
         case WRONG_DATA:
