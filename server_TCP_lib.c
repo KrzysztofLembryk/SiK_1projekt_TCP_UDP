@@ -110,6 +110,11 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
         make_error_msg(__FUNCTION__, " - not consecutive packet id");
         return ERROR; 
     }
+    if (data_metainfo->nbr_of_bytes_in_packet > MAX_ALLOWED_PACKET_SIZE)
+    {
+        make_error_msg(__FUNCTION__, " - declared nbr_of_bytes in DATA packet is greater than allowed max packet size");
+        return ERROR;
+    }
 
     return SUCCESS;
 }
