@@ -180,6 +180,7 @@ int UDPR_client_handle_ACC(int socket_fd,
         }
 
         cast_buff_to(acc, sizeof(*acc), response_buff, *received_length);
+
         if (acc->package_type_id == CONACC_ID)
         {
             // No matter how many conacc we get, we ignore all of them since we
@@ -191,10 +192,33 @@ int UDPR_client_handle_ACC(int socket_fd,
 
         ntoh_ACC(acc);
 
+        if (acc->package_type_id == RCVD_ID )
+        {
+            if (acc->session_id != session_id)
+            {
+                make_error_msg(__FUNCTION__, " - got RCVD packet with wrong session id");
+                return ERROR;
+            }
+
+            (*nbr_of_retransmits)++;
+            if ((*nbr_of_retransmits) > MAX_RETRANSMITS)
+            {
+                make_error_msg(__FUNCTION__, " - nbr of retransmits greater than MAX nbr of retransmits");
+                return ERROR;
+            }
+            return RETRANSMISSION;
+
+        }
         if (acc->package_type_id != ACC_ID)
+        {
+            make_error_msg(__FUNCTION__, " - got packet with wrong package_type_id");
             return ERROR;
+        }
         if (acc->session_id != session_id)
+        {
+            make_error_msg(__FUNCTION__, " - got ACC packet with wrong session id");
             return ERROR;
+        }
         if (acc->package_id < curr_package_id)
         {
             // We could get good ACC but with old package_id thus we ignore it
@@ -202,7 +226,10 @@ int UDPR_client_handle_ACC(int socket_fd,
             continue;
         }
         if (acc->package_id > curr_package_id)
+        {
+            make_error_msg(__FUNCTION__, " - got ACC packet with greater package_id than current_package_id");
             return ERROR;
+        }
 
         return SUCCESS;
     } while (true);

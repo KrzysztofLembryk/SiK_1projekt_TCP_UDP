@@ -72,9 +72,9 @@ int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
             
             cast_buff_to(&conrjt, sizeof(conrjt), buff, *read_bytes);
             ntoh_CONRJT(&conrjt);
-
             make_error_msg(__FUNCTION__, " - got packet not from our client, sending CONRJT");
-            send_CONRJT(socket_fd, client_address, *client_address_len, conrjt.session_id);
+            send_CONRJT(socket_fd, client_address, *client_address_len, 
+                                                    conrjt.session_id);
 
             continue;
         }
