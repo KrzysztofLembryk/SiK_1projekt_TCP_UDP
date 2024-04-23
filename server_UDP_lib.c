@@ -208,6 +208,11 @@ int check_if_correct_DATA_packet(char *buff,
         make_error_msg(__FUNCTION__, " - received DATA package has wrong package id");
         return WRONG_PACKAGE_ID;
     }
+    if (d_info->nbr_of_bytes_in_packet > MAX_ALLOWED_PACKET_SIZE)
+    {
+        make_error_msg(__FUNCTION__, " - declared nbr_of_bytes in DATA packet is greater than allowed max packet size");
+        return ERROR;
+    }
 
     // DATA packet header might be correct, but client might send too much data
     // or too little data than declared, so this means that received DATA packet
@@ -373,7 +378,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         {
             if (data_info.package_type_id == CONN_ID)
             {
-                make_error_msg(__FUNCTION__, " - got old CONN packet instead of DATA");
+                make_error_msg(__FUNCTION__, " - got old CONN packet instead of DATA, ignoring it");
                 // We have connection established so we ignore clients CONN msgs
                 continue;
             }
