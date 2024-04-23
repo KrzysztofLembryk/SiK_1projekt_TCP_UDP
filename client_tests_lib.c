@@ -1053,7 +1053,7 @@ void UDPR_send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address
             sendto_wrapper(new_socket, server_address, server_address_len,
             &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
 
-            init_DATA(&data, session_id, 0, vec->occupied_size - 6, vec->buff);
+            init_DATA(&data, session_id, 1, vec->occupied_size - 6, vec->buff);
             sendto_wrapper(socket_fd, server_address, server_address_len,
             &data, sizeof(DATA_INFO_t) + vec->occupied_size - 6, __FUNCTION__);
 
@@ -1088,7 +1088,7 @@ void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_
             printf("\n||||||||||||||||||||||||||\n");
             printf("-----WRONG CONN TESTS-----\n");
             printf("||||||||||||||||||||||||||\n\n");
-            if (is_TCP)
+            if (protocol == TCP_PROTOCOL)
             {
                 TCP_send_WRONG_CONN(socket_fd, server_address, vec, session_id, is_TCP);
             }
@@ -1099,7 +1099,7 @@ void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_
                 else
                 {
 
-                    // UDPR_send_WRONG_CONN(socket_fd, server_address, vec, session_id, protocol);
+                    UDPR_send_WRONG_CONN(socket_fd, server_address, vec, session_id, protocol);
                 }
             }
             break;
@@ -1107,7 +1107,7 @@ void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_
             printf("\n||||||||||||||||||||||||||\n");
             printf("-----WRONG DATA TESTS-----\n");
             printf("||||||||||||||||||||||||||\n\n");
-            if (is_TCP)
+            if (protocol == TCP_PROTOCOL)
             {
                 TCP_send_WRONG_DATA(socket_fd, server_address, vec, session_id, is_TCP);
             }
