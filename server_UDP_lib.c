@@ -329,6 +329,80 @@ int do_retransmission(int socket_fd, struct sockaddr_in *client_address, socklen
     return SUCCESS;
 }
 
+int handle_ret_val(int ret_val, 
+int socket_fd, 
+struct sockaddr_in *client_address, 
+socklen_t client_address_len, 
+ssize_t read_bytes,
+uint64_t curr_package_id,
+DATA_INFO_t *data_info,
+uint64_t session_id)
+{
+        if (ret_val == WRONG_PACKAGE_TYPE_ID)
+        {
+            if (data_info->package_type_id == CONN_ID)
+            {
+                if (read_bytes != sizeof(CONN))
+                {
+                    make_error_msg(__FUNCTION__, " - got packet with CONN_ID but size of this packet is not equal to sizeof(CONN)");
+                    send_RJT(socket_fd, client_address, client_address_len,
+                        session_id, curr_package_id);
+                    return ERROR;
+                }
+                make_error_msg(__FUNCTION__, " - got old CONN packet instead of DATA, ignoring it");
+                // We have connection established so we ignore clients CONN msgs
+                return CONTINUE;
+            }
+            else
+            {
+                // We ignore only CONN packages from our client, otherwise he
+                // must have sent sth wrong thus connection is incorrect thus
+                // we end it
+                send_RJT(socket_fd, client_address, client_address_len,
+                        session_id, curr_package_id);
+                return ERROR;
+            }
+        }
+        else if (ret_val == WRONG_SESSION_ID)
+        {
+            send_RJT(socket_fd, client_address, client_address_len, session_id, curr_package_id);
+            return ERROR;
+        }
+        else if (ret_val == WRONG_PACKAGE_ID)
+        {
+            // If we get data with correct session id (this means its from our 
+            // client) and if data package has wrong id we check if this id is
+            // less than current id we want, if it is we ignore it
+            // if not we send RJT because data was send in wrong order.
+            if (data_info->package_id < curr_package_id)
+            {
+                if ((size_t)read_bytes != sizeof(*data_info) + data_info->nbr_of_bytes_in_packet)
+                {
+                    make_error_msg(__FUNCTION__, " - received DATA package with old package_id where nbr of received bytes is not equal to declared nbr of bytes in DATA_INFO header, ending connection");
+                    return ERROR;
+                }
+                make_error_msg(__FUNCTION__, " - received old DATA package ignoring it");
+                return CONTINUE;
+            }
+            else
+            {
+                // Our client sent package with wrong data, 
+                send_RJT(socket_fd, client_address, client_address_len,
+                        session_id, data_info->package_id);
+
+                return ERROR;
+            }
+        }
+        else if (ret_val != SUCCESS)
+        {
+            send_RJT(socket_fd, client_address, client_address_len,
+                    session_id, data_info->package_id);
+
+            return ERROR;
+        }
+    return SUCCESS;
+}
+
 // Once we establish connection with client we need to ignore other CONN packets
 // sent by him and also DATA packets with package_id less than curr_id, since we
 // could be interrupted while talking to him and he might send a few the same 
@@ -378,62 +452,74 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         int ret_val = check_if_correct_DATA_packet(buff, read_bytes, conn,
                                 &data_info, curr_package_id);
 
-        if (ret_val == WRONG_PACKAGE_TYPE_ID)
-        {
-            if (data_info.package_type_id == CONN_ID)
-            {
-                if (read_bytes != sizeof(CONN))
-                {
-                    make_error_msg(__FUNCTION__, " - got packet with CONN_ID but size of this packet is not equal to sizeof(CONN)");
-                    send_RJT(socket_fd, &client_address, client_address_len,
-                        conn->session_id, curr_package_id);
-                    return;
-                }
-                make_error_msg(__FUNCTION__, " - got old CONN packet instead of DATA, ignoring it");
-                // We have connection established so we ignore clients CONN msgs
-                continue;
-            }
-            else
-            {
-                // We ignore only CONN packages from our client, otherwise he
-                // must have sent sth wrong thus connection is incorrect thus
-                // we end it
-                send_RJT(socket_fd, &client_address, client_address_len,
-                        conn->session_id, curr_package_id);
-                return;
-            }
-        }
-        else if (ret_val == WRONG_SESSION_ID)
-        {
-            send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
-            return;
-        }
-        else if (ret_val == WRONG_PACKAGE_ID)
-        {
-            // If we get data with correct session id (this means its from our 
-            // client) and if data package has wrong id we check if this id is
-            // less than current id we want, if it is we ignore it
-            // if not we send RJT because data was send in wrong order.
-            if (data_info.package_id < curr_package_id)
-            {
-                continue;
-            }
-            else
-            {
-                // Our client sent package with wrong data, 
-                send_RJT(socket_fd, &client_address, client_address_len,
-                        conn->session_id, data_info.package_id);
+        ret_val = handle_ret_val(ret_val, socket_fd, &client_address, client_address_len, read_bytes, curr_package_id, &data_info, conn->session_id);
 
-                return;
-            }
-        }
-        else if (ret_val != SUCCESS)
-        {
-            send_RJT(socket_fd, &client_address, client_address_len,
-                    conn->session_id, data_info.package_id);
-
+        if (ret_val == ERROR)
             return;
-        }
+        else if (ret_val == CONTINUE)
+            continue;
+        // if (ret_val == WRONG_PACKAGE_TYPE_ID)
+        // {
+        //     if (data_info.package_type_id == CONN_ID)
+        //     {
+        //         if (read_bytes != sizeof(CONN))
+        //         {
+        //             make_error_msg(__FUNCTION__, " - got packet with CONN_ID but size of this packet is not equal to sizeof(CONN)");
+        //             send_RJT(socket_fd, &client_address, client_address_len,
+        //                 conn->session_id, curr_package_id);
+        //             return;
+        //         }
+        //         make_error_msg(__FUNCTION__, " - got old CONN packet instead of DATA, ignoring it");
+        //         // We have connection established so we ignore clients CONN msgs
+        //         continue;
+        //     }
+        //     else
+        //     {
+        //         // We ignore only CONN packages from our client, otherwise he
+        //         // must have sent sth wrong thus connection is incorrect thus
+        //         // we end it
+        //         send_RJT(socket_fd, &client_address, client_address_len,
+        //                 conn->session_id, curr_package_id);
+        //         return;
+        //     }
+        // }
+        // else if (ret_val == WRONG_SESSION_ID)
+        // {
+        //     send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
+        //     return;
+        // }
+        // else if (ret_val == WRONG_PACKAGE_ID)
+        // {
+        //     // If we get data with correct session id (this means its from our 
+        //     // client) and if data package has wrong id we check if this id is
+        //     // less than current id we want, if it is we ignore it
+        //     // if not we send RJT because data was send in wrong order.
+        //     if (data_info.package_id < curr_package_id)
+        //     {
+        //         if ((size_t)read_bytes != sizeof(data_info) + data_info->nbr_of_bytes_in_packet)
+        //         {
+        //             make_error_msg(__FUNCTION__, " - received DATA package with old package_id where nbr of received bytes is not equal to declared nbr of bytes in DATA_INFO header, ending connection");
+        //             return;
+        //         }
+        //         make_error_msg(__FUNCTION__, " - received old DATA package ignoring it");
+        //         continue;
+        //     }
+        //     else
+        //     {
+        //         // Our client sent package with wrong data, 
+        //         send_RJT(socket_fd, &client_address, client_address_len,
+        //                 conn->session_id, data_info.package_id);
+
+        //         return;
+        //     }
+        // }
+        // else if (ret_val != SUCCESS)
+        // {
+        //     send_RJT(socket_fd, &client_address, client_address_len,
+        //             conn->session_id, data_info.package_id);
+
+        //     return;
+        // }
 
         // We got correct DATA packet so we send ACC to client with its id
         send_ACC(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);

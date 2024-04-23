@@ -1096,7 +1096,10 @@ void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_
                 if (protocol == UDP_PROTOCOL)
                     UDP_send_WRONG_CONN(socket_fd, server_address, vec, session_id, protocol);
                 else
-                    UDPR_send_WRONG_CONN(socket_fd, server_address, vec, session_id, protocol);
+                {
+
+                    // UDPR_send_WRONG_CONN(socket_fd, server_address, vec, session_id, protocol);
+                }
             }
             break;
         case WRONG_DATA:

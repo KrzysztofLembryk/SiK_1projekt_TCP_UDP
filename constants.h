@@ -43,6 +43,7 @@
 #define TIMEOUT_ERROR -6
 #define RETRANSMISSION -7
 #define CONRJT_ERROR -8
+#define CONTINUE -9
 
 
 // -----SOCKET COMMUNICATION FLAGS-----
