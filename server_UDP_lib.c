@@ -27,12 +27,12 @@ int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
 //   sends CONRJT to this address and waits for packet from correct client
 // - Function sets variables *client_address and client_addr_len
 int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
-                            struct sockaddr_in *client_address,
-                            socklen_t *client_address_len,
-                            ssize_t *read_bytes,
-                            struct sockaddr_in *correct_addr)
+                        struct sockaddr_in *client_address,
+                        socklen_t *client_address_len,
+                        ssize_t *read_bytes,
+                        struct sockaddr_in *correct_addr)
 {
-    while(true)
+    while (true)
     {
         memset(buff, 0, buff_size);
 
@@ -41,18 +41,18 @@ int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
         // enough space in buffor part of data is lost. Thus first we will read
         // whole datagram into buffer, then cast it on our structures i.e. CONN.
         *read_bytes = recvfrom(socket_fd, buff, RECEIVE_BUFFOR_SIZE,
-                                    DEFAULT_FLAG,
-                                    (struct sockaddr *)client_address,
-                                    (socklen_t *)client_address_len);
+                               DEFAULT_FLAG,
+                               (struct sockaddr *)client_address,
+                               (socklen_t *)client_address_len);
 
         if (*read_bytes < 0)
         {
-            if (errno == EAGAIN) 
+            if (errno == EAGAIN)
             {
-                make_error_msg(__FUNCTION__, " - timeout\n"); 
+                make_error_msg(__FUNCTION__, " - timeout\n");
                 return TIMEOUT_ERROR;
             }
-            else 
+            else
             {
                 make_error_msg(__FUNCTION__, " - read_bytes < 0");
                 return ERROR;
@@ -61,19 +61,18 @@ int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
 
         // If we got connection not from our client, we send CONRJT and wait
         // for another msg
-        if ((client_address->sin_addr.s_addr != correct_addr->sin_addr.s_addr)
-         || (client_address->sin_port != correct_addr->sin_port))
+        if ((client_address->sin_addr.s_addr != correct_addr->sin_addr.s_addr) || (client_address->sin_port != correct_addr->sin_port))
         {
             // We need to check session id of received packet since CONRJT needs
             // it. CONRJT has only two members: package type and session id thus
             // we cast received msg to CONRJT
             CONRJT conrjt;
-            
+
             cast_buff_to(&conrjt, sizeof(conrjt), buff, *read_bytes);
             ntoh_CONRJT(&conrjt);
             make_error_msg(__FUNCTION__, " - got packet not from our client, sending CONRJT");
-            send_CONRJT(socket_fd, client_address, *client_address_len, 
-                                                    conrjt.session_id);
+            send_CONRJT(socket_fd, client_address, *client_address_len,
+                        conrjt.session_id);
 
             continue;
         }
@@ -82,14 +81,12 @@ int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
         {
             make_error_msg(__FUNCTION__, " - read_bytes == 0");
             return ERROR;
-
         }
         return SUCCESS;
     }
 
     return SUCCESS;
 }
-
 
 int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {
@@ -118,7 +115,6 @@ int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
     return SUCCESS;
 }
 
-
 int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
                 socklen_t client_address_len, uint64_t session_id)
 {
@@ -127,8 +123,8 @@ int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
 
     init_CONRJT(&conrjt, session_id);
 
-    int ret_val = sendto_wrapper(socket_fd, client_address, client_address_len, 
-     &conrjt, sizeof(conrjt), __FUNCTION__);
+    int ret_val = sendto_wrapper(socket_fd, client_address, client_address_len,
+                                 &conrjt, sizeof(conrjt), __FUNCTION__);
 
     return ret_val;
 }
@@ -141,8 +137,8 @@ int send_CONACC(int socket_fd, struct sockaddr_in *client_address,
 
     init_CONACC(&conacc, session_id);
 
-    int ret_val = sendto_wrapper(socket_fd, client_address, client_address_len, 
-    &conacc, sizeof(conacc), __FUNCTION__);
+    int ret_val = sendto_wrapper(socket_fd, client_address, client_address_len,
+                                 &conacc, sizeof(conacc), __FUNCTION__);
 
     return ret_val;
 }
@@ -156,26 +152,26 @@ int send_RJT(int socket_fd, struct sockaddr_in *client_address,
 
     init_RJT(&rjt, session_id, package_id);
 
-    int ret_val =  sendto_wrapper(socket_fd, client_address, client_address_len, &rjt, sizeof(rjt), __FUNCTION__);
+    int ret_val = sendto_wrapper(socket_fd, client_address, client_address_len, &rjt, sizeof(rjt), __FUNCTION__);
 
     return ret_val;
 }
 
 int send_RCVD(int socket_fd, struct sockaddr_in *client_address,
-             socklen_t client_address_len, uint64_t session_id)
+              socklen_t client_address_len, uint64_t session_id)
 {
     printf("Sending RCVD\n");
     RCVD rcvd;
 
     init_RCVD(&rcvd, session_id);
 
-    int ret_val =  sendto_wrapper(socket_fd, client_address, client_address_len, &rcvd, sizeof(rcvd), __FUNCTION__);
+    int ret_val = sendto_wrapper(socket_fd, client_address, client_address_len, &rcvd, sizeof(rcvd), __FUNCTION__);
 
     return ret_val;
 }
 
 int send_ACC(int socket_fd, struct sockaddr_in *client_address,
-             socklen_t client_address_len, uint64_t session_id, 
+             socklen_t client_address_len, uint64_t session_id,
              uint64_t package_id)
 {
     printf("Sending ACC\n");
@@ -183,7 +179,7 @@ int send_ACC(int socket_fd, struct sockaddr_in *client_address,
 
     init_ACC(&acc, session_id, package_id);
 
-    int ret_val =  sendto_wrapper(socket_fd, client_address, client_address_len, &acc, sizeof(acc), __FUNCTION__);
+    int ret_val = sendto_wrapper(socket_fd, client_address, client_address_len, &acc, sizeof(acc), __FUNCTION__);
 
     return ret_val;
 }
@@ -196,8 +192,8 @@ int check_if_correct_DATA_packet(char *buff,
 {
     cast_buff_to(d_info, sizeof(*d_info), buff, (size_t)read_bytes);
     ntoh_DATA_INFO(d_info);
-    printf("Printing info about received data:\n");
-    print_DATA_INFO(d_info);
+    // printf("Printing info about received data:\n");
+    // print_DATA_INFO(d_info);
 
     if (d_info->package_type_id != DATA_ID)
     {
@@ -235,8 +231,8 @@ int check_if_correct_DATA_packet(char *buff,
     return SUCCESS;
 }
 
-void UDP_data_receive(int socket_fd, char *buff, CONN *conn, 
-    struct sockaddr_in *curr_client_addr)
+void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
+                      struct sockaddr_in *curr_client_addr)
 {
     const uint64_t bytes_to_receive = conn->nbr_of_bytes_to_be_sent;
     uint64_t bytes_recvd = 0;
@@ -247,14 +243,14 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
     while (bytes_recvd < bytes_to_receive)
     {
         printf("waiting for packet [%lu]\n", curr_package_id);
-        ssize_t read_bytes; 
+        ssize_t read_bytes;
 
-        int read_ret_val = read_data_to_buffer(socket_fd, buff, 
-                                                 RECEIVE_BUFFOR_SIZE,
-                                                 &client_address,
-                                                 &client_address_len,
-                                                 &read_bytes,
-                                                 curr_client_addr);
+        int read_ret_val = read_data_to_buffer(socket_fd, buff,
+                                               RECEIVE_BUFFOR_SIZE,
+                                               &client_address,
+                                               &client_address_len,
+                                               &read_bytes,
+                                               curr_client_addr);
 
         if (read_ret_val == TIMEOUT_ERROR || read_ret_val == ERROR)
         {
@@ -265,11 +261,11 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
 
         DATA_INFO_t data_info;
         int ret_val = check_if_correct_DATA_packet(buff, read_bytes, conn,
-                                &data_info, curr_package_id);
+                                                   &data_info, curr_package_id);
 
-        // if (ret_val == WRONG_SESSION_ID) 
+        // if (ret_val == WRONG_SESSION_ID)
         // {
-        //     // This means that somebody else sent us some data since it has 
+        //     // This means that somebody else sent us some data since it has
         //     // wrong session id (We assume that session id is unique), thus we
         //     // dont want to stop receiving data from our client so we wait for
         //     // another package, and send CONRJT to client who sent wrong one.
@@ -281,7 +277,7 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
         {
             // Our client sent package with wrong data so we end connection
             send_RJT(socket_fd, &client_address, client_address_len,
-                    conn->session_id, data_info.package_id);
+                     conn->session_id, data_info.package_id);
             return;
         }
 
@@ -312,7 +308,7 @@ int do_retransmission(int socket_fd, struct sockaddr_in *client_address, socklen
         make_error_msg(__FUNCTION__, " - nbr of available retransmits have been reached");
         return ERROR;
     }
-    // We got timeout error so we send CONACC again if we havent got 
+    // We got timeout error so we send CONACC again if we havent got
     // first DATA packet
     if (is_first_DATA_packet)
     {
@@ -320,8 +316,8 @@ int do_retransmission(int socket_fd, struct sockaddr_in *client_address, socklen
     }
     else
     {
-        // After receiving first DATA packet (with id = 0), we send ACC packet 
-        // and increase curr_package_id by 1, thus if we need to do the 
+        // After receiving first DATA packet (with id = 0), we send ACC packet
+        // and increase curr_package_id by 1, thus if we need to do the
         // retransmission we need to send ACC again but with previous package id
         // hence we need to substract 1 from curr_package_id
         send_ACC(socket_fd, client_address, client_address_len, conn->session_id, curr_package_id - 1);
@@ -329,83 +325,92 @@ int do_retransmission(int socket_fd, struct sockaddr_in *client_address, socklen
     return SUCCESS;
 }
 
-int handle_ret_val(int ret_val, 
-int socket_fd, 
-struct sockaddr_in *client_address, 
-socklen_t client_address_len, 
-ssize_t read_bytes,
-uint64_t curr_package_id,
-DATA_INFO_t *data_info,
-uint64_t session_id)
+int handle_ret_val(int ret_val,
+                   int socket_fd,
+                   struct sockaddr_in *client_address,
+                   socklen_t client_address_len,
+                   ssize_t read_bytes,
+                   uint64_t curr_package_id,
+                   DATA_INFO_t *data_info,
+                   uint64_t session_id,
+                   bool is_first_data_packet)
 {
-        if (ret_val == WRONG_PACKAGE_TYPE_ID)
+    if (ret_val == WRONG_PACKAGE_TYPE_ID)
+    {
+        if (data_info->package_type_id == CONN_ID)
         {
-            if (data_info->package_type_id == CONN_ID)
+            if (read_bytes != sizeof(CONN))
             {
-                if (read_bytes != sizeof(CONN))
-                {
-                    make_error_msg(__FUNCTION__, " - got packet with CONN_ID but size of this packet is not equal to sizeof(CONN)");
-                    send_RJT(socket_fd, client_address, client_address_len,
-                        session_id, curr_package_id);
-                    return ERROR;
-                }
+                make_error_msg(__FUNCTION__, " - got packet with CONN_ID but size of this packet is not equal to sizeof(CONN)");
+                send_RJT(socket_fd, client_address, client_address_len,
+                         session_id, curr_package_id);
+                return ERROR;
+            }
+            if (is_first_data_packet)
+            {
                 make_error_msg(__FUNCTION__, " - got old CONN packet instead of DATA, ignoring it");
                 // We have connection established so we ignore clients CONN msgs
                 return CONTINUE;
             }
             else
             {
-                // We ignore only CONN packages from our client, otherwise he
-                // must have sent sth wrong thus connection is incorrect thus
-                // we end it
-                send_RJT(socket_fd, client_address, client_address_len,
-                        session_id, curr_package_id);
+                make_error_msg(__FUNCTION__, " - got CONN packet after receiving first DATA packet --> against protocol");
                 return ERROR;
             }
         }
-        else if (ret_val == WRONG_SESSION_ID)
+        else
         {
-            send_RJT(socket_fd, client_address, client_address_len, session_id, curr_package_id);
-            return ERROR;
-        }
-        else if (ret_val == WRONG_PACKAGE_ID)
-        {
-            // If we get data with correct session id (this means its from our 
-            // client) and if data package has wrong id we check if this id is
-            // less than current id we want, if it is we ignore it
-            // if not we send RJT because data was send in wrong order.
-            if (data_info->package_id < curr_package_id)
-            {
-                if ((size_t)read_bytes != sizeof(*data_info) + data_info->nbr_of_bytes_in_packet)
-                {
-                    make_error_msg(__FUNCTION__, " - received DATA package with old package_id where nbr of received bytes is not equal to declared nbr of bytes in DATA_INFO header, ending connection");
-                    return ERROR;
-                }
-                make_error_msg(__FUNCTION__, " - received old DATA package ignoring it");
-                return CONTINUE;
-            }
-            else
-            {
-                // Our client sent package with wrong data, 
-                send_RJT(socket_fd, client_address, client_address_len,
-                        session_id, data_info->package_id);
-
-                return ERROR;
-            }
-        }
-        else if (ret_val != SUCCESS)
-        {
+            // We ignore only CONN packages from our client, otherwise he
+            // must have sent sth wrong thus connection is incorrect thus
+            // we end it
             send_RJT(socket_fd, client_address, client_address_len,
-                    session_id, data_info->package_id);
+                     session_id, curr_package_id);
+            return ERROR;
+        }
+    }
+    else if (ret_val == WRONG_SESSION_ID)
+    {
+        send_RJT(socket_fd, client_address, client_address_len, session_id, curr_package_id);
+        return ERROR;
+    }
+    else if (ret_val == WRONG_PACKAGE_ID)
+    {
+        // If we get data with correct session id (this means its from our
+        // client) and if data package has wrong id we check if this id is
+        // less than current id we want, if it is we ignore it
+        // if not we send RJT because data was send in wrong order.
+        if (data_info->package_id < curr_package_id)
+        {
+            if ((size_t)read_bytes != sizeof(*data_info) + data_info->nbr_of_bytes_in_packet)
+            {
+                make_error_msg(__FUNCTION__, " - received DATA package with old package_id where nbr of received bytes is not equal to declared nbr of bytes in DATA_INFO header, ending connection");
+                return ERROR;
+            }
+            make_error_msg(__FUNCTION__, " - received old DATA package ignoring it");
+            return CONTINUE;
+        }
+        else
+        {
+            // Our client sent package with wrong data,
+            send_RJT(socket_fd, client_address, client_address_len,
+                     session_id, data_info->package_id);
 
             return ERROR;
         }
+    }
+    else if (ret_val != SUCCESS)
+    {
+        send_RJT(socket_fd, client_address, client_address_len,
+                 session_id, data_info->package_id);
+
+        return ERROR;
+    }
     return SUCCESS;
 }
 
 // Once we establish connection with client we need to ignore other CONN packets
 // sent by him and also DATA packets with package_id less than curr_id, since we
-// could be interrupted while talking to him and he might send a few the same 
+// could be interrupted while talking to him and he might send a few the same
 // DATA packets using retransmission.
 // in UDPR we need to know the address of client who sent us conn, thus we need
 // to have two additional function parameters that remember it.
@@ -422,14 +427,14 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
     while (bytes_recvd < bytes_to_receive)
     {
         printf("waiting for packet [%lu]\n", curr_package_id);
-        ssize_t read_bytes; 
+        ssize_t read_bytes;
 
-        int read_ret_val = read_data_to_buffer(socket_fd, buff, 
-                                                 RECEIVE_BUFFOR_SIZE,
-                                                 &client_address,
-                                                 &client_address_len,
-                                                 &read_bytes,
-                                                 correct_client_addr);
+        int read_ret_val = read_data_to_buffer(socket_fd, buff,
+                                               RECEIVE_BUFFOR_SIZE,
+                                               &client_address,
+                                               &client_address_len,
+                                               &read_bytes,
+                                               correct_client_addr);
 
         if (read_ret_val == ERROR)
         {
@@ -437,8 +442,8 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         }
         if (read_ret_val == TIMEOUT_ERROR)
         {
-            if (do_retransmission(socket_fd, correct_client_addr, correct_client_addr_len, conn, is_first_DATA_packet, 
-            &nbr_of_retransmits, curr_package_id) != SUCCESS)
+            if (do_retransmission(socket_fd, correct_client_addr, correct_client_addr_len, conn, is_first_DATA_packet,
+                                  &nbr_of_retransmits, curr_package_id) != SUCCESS)
             {
                 // Only happens when we exceeded nbr of retransmits
                 return;
@@ -446,13 +451,15 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
             continue;
         }
 
-        // If we succeded getting data into buffer we now need to check this 
+        // If we succeded getting data into buffer we now need to check this
         // data
         DATA_INFO_t data_info;
         int ret_val = check_if_correct_DATA_packet(buff, read_bytes, conn,
-                                &data_info, curr_package_id);
+                                                   &data_info, curr_package_id);
 
-        ret_val = handle_ret_val(ret_val, socket_fd, &client_address, client_address_len, read_bytes, curr_package_id, &data_info, conn->session_id);
+        ret_val = handle_ret_val(ret_val, socket_fd, &client_address, 
+        client_address_len, read_bytes, curr_package_id, &data_info, 
+        conn->session_id, is_first_DATA_packet);
 
         if (ret_val == ERROR)
             return;
@@ -490,7 +497,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         // }
         // else if (ret_val == WRONG_PACKAGE_ID)
         // {
-        //     // If we get data with correct session id (this means its from our 
+        //     // If we get data with correct session id (this means its from our
         //     // client) and if data package has wrong id we check if this id is
         //     // less than current id we want, if it is we ignore it
         //     // if not we send RJT because data was send in wrong order.
@@ -506,7 +513,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         //     }
         //     else
         //     {
-        //         // Our client sent package with wrong data, 
+        //         // Our client sent package with wrong data,
         //         send_RJT(socket_fd, &client_address, client_address_len,
         //                 conn->session_id, data_info.package_id);
 
@@ -551,22 +558,22 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 
     while (true)
     {
-        // If the timeout is set to zero (the default) then the operation 
+        // If the timeout is set to zero (the default) then the operation
         // will never timeout
         struct timeval no_timeout = {.tv_sec = 0, .tv_usec = 0};
-        setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &no_timeout, 
-                                                        sizeof no_timeout);
-        // We dont want to set timeout for our socket here since now we are 
+        setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &no_timeout,
+                   sizeof no_timeout);
+        // We dont want to set timeout for our socket here since now we are
         // waiting for new connection, thus we can wait a long time.
         struct sockaddr_in client_address;
         socklen_t client_address_len = (socklen_t)sizeof(client_address);
         ssize_t read_bytes;
-        int read_ret_val = read_data_to_buffer(socket_fd, buff, 
-                                                        RECEIVE_BUFFOR_SIZE,
-                                                        &client_address,
-                                                        &client_address_len,
-                                                        &read_bytes,
-                                                        &client_address);
+        int read_ret_val = read_data_to_buffer(socket_fd, buff,
+                                               RECEIVE_BUFFOR_SIZE,
+                                               &client_address,
+                                               &client_address_len,
+                                               &read_bytes,
+                                               &client_address);
         if (read_ret_val < 0)
             continue;
 
@@ -597,17 +604,17 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 
         switch (conn.protocol_id)
         {
-            case UDP_PROTOCOL:
-                printf("Will be receiving data from client\n");
-                UDP_data_receive(socket_fd, buff, &conn, &client_address);
-                break;
-            case UDPR_PROTOCOL:
-                printf("UDPR server will be receiving data from client\n");
-                UDPR_data_receive(socket_fd, buff, &conn, &client_address, client_address_len);
-                break;
-            default:
-                make_error_msg(__FUNCTION__, " - unknown protocol type");
-                break;
+        case UDP_PROTOCOL:
+            printf("Will be receiving data from client\n");
+            UDP_data_receive(socket_fd, buff, &conn, &client_address);
+            break;
+        case UDPR_PROTOCOL:
+            printf("UDPR server will be receiving data from client\n");
+            UDPR_data_receive(socket_fd, buff, &conn, &client_address, client_address_len);
+            break;
+        default:
+            make_error_msg(__FUNCTION__, " - unknown protocol type");
+            break;
         }
     }
 }

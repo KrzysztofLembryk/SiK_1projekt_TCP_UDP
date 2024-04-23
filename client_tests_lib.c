@@ -902,7 +902,8 @@ void UDPR_send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address
             init_DATA(&data, session_id, 0, vec->occupied_size - 7, vec->buff);
             sendto_wrapper(socket_fd, server_address, server_address_len,
             &data, sizeof(DATA_INFO_t) + vec->occupied_size - 7, __FUNCTION__);
-
+            sleep(MAX_WAIT + 1);
+            sleep(MAX_WAIT + 1);
             break;
         case SECOND_DATA_PACKAGE_WRONG_ID_GREATER:
             printf("-----SECOND DATA PACKAGE WRONG ID - GREATER-----\n");
@@ -997,7 +998,7 @@ void UDPR_send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address
 
             init_DATA(&data, session_id, 0, 5, vec->buff);
             sendto_wrapper(socket_fd, server_address, server_address_len,
-            &data, sizeof(DATA_INFO_t) + 26, __FUNCTION__);
+            &data, sizeof(DATA_INFO_t) + 5, __FUNCTION__);
 
             sendto_wrapper(socket_fd, server_address, server_address_len,
             &conn, sizeof(conn), __FUNCTION__);
