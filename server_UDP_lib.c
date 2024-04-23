@@ -299,7 +299,7 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
         send_RCVD(socket_fd, &client_address, client_address_len, conn->session_id);
     else
     {
-        make_error_msg(__FUNCTION__, " - client sent too many bytes, bytes_recv > bytes_to_receive");
+        make_error_msg(__FUNCTION__, " - client sent too many bytes, bytes_recv != bytes_to_receive");
         send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
     }
 }
@@ -321,7 +321,11 @@ int do_retransmission(int socket_fd, struct sockaddr_in *client_address, socklen
     }
     else
     {
-        send_ACC(socket_fd, client_address, client_address_len, conn->session_id, curr_package_id);
+        // After receiving first DATA packet (with id = 0), we send ACC packet 
+        // and increase curr_package_id by 1, thus if we need to do the 
+        // retransmission we need to send ACC again but with previous package id
+        // hence we need to substract 1 from curr_package_id
+        send_ACC(socket_fd, client_address, client_address_len, conn->session_id, curr_package_id - 1);
     }
     return SUCCESS;
 }
@@ -402,16 +406,10 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         {
             // If we get data with correct session id (this means its from our 
             // client) and if data package has wrong id we check if this id is
-            // less than current id we want, if it is we do the retransmission
+            // less than current id we want, if it is we ignore it
             // if not we send RJT because data was send in wrong order.
             if (data_info.package_id < curr_package_id)
             {
-                // if (do_retransmission(socket_fd, &client_address, client_address_len, conn, is_first_DATA_packet, 
-                // &nbr_of_retransmits, curr_package_id) != SUCCESS)
-                // {
-                //     return;
-                // }
-                // if we got data with package_id less than current we ignore it
                 continue;
             }
             else
@@ -446,7 +444,10 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
     if (bytes_recvd == bytes_to_receive)
         send_RCVD(socket_fd, &client_address, client_address_len, conn->session_id);
     else
+    {
+        make_error_msg(__FUNCTION__, " - bytes_recvd != bytes_to_receive declared in CONN package, client sent too much data");
         send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
+    }
 }
 
 void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
