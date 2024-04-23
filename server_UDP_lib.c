@@ -22,16 +22,15 @@ int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
 
 // - Function reads maximally RECEIVE_BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
-// - If recvfrom read <= 0 bytes func returns -1, function checks if timeout
+// - If recvfrom read <= 0 bytes func returns ERROR, function checks if timeout
 // - Function checks if connection was established with correct_addr, if not
-// returns error 
+//   sends CONRJT to this address and waits for packet from correct client
 // - Function sets variables *client_address and client_addr_len
 int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
                             struct sockaddr_in *client_address,
                             socklen_t *client_address_len,
                             ssize_t *read_bytes,
-                            struct sockaddr_in *correct_addr, 
-                            uint64_t session_id)
+                            struct sockaddr_in *correct_addr)
 {
     while(true)
     {
@@ -224,10 +223,7 @@ int check_if_correct_DATA_packet(char *buff,
     // DATA packet header might be correct, but client might send too much data
     // or too little data than declared, so this means that received DATA packet
     // is incorrect thus we end connection
-    long long diff = (long long)read_bytes - (long long)sizeof(*d_info) - 
-        (long long)d_info->nbr_of_bytes_in_packet;
-    
-    if (diff != 0)
+    if ((size_t)read_bytes != sizeof(*d_info) + d_info->nbr_of_bytes_in_packet)
     {
         printf("Read bytes: %zu\n", (size_t)read_bytes);
         printf("sizeof dinfo: %zu\n", sizeof(*d_info));
@@ -258,8 +254,7 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
                                                  &client_address,
                                                  &client_address_len,
                                                  &read_bytes,
-                                                 curr_client_addr,
-                                                 conn->session_id);
+                                                 curr_client_addr);
 
         if (read_ret_val == TIMEOUT_ERROR || read_ret_val == ERROR)
         {
@@ -357,8 +352,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
                                                  &client_address,
                                                  &client_address_len,
                                                  &read_bytes,
-                                                 correct_client_addr,
-                                                 conn->session_id);
+                                                 correct_client_addr);
 
         if (read_ret_val == ERROR)
         {
@@ -479,8 +473,7 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
                                                         &client_address,
                                                         &client_address_len,
                                                         &read_bytes,
-                                                        &client_address,
-                                                        0);
+                                                        &client_address);
         if (read_ret_val < 0)
             continue;
 
