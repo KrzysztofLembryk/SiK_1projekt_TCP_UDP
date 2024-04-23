@@ -159,13 +159,15 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         return;
 
     ntoh_CONACC(&conacc);
+
+    if (check_CONACC(session_id, &conacc) != SUCCESS)
+        return;
+
     printf("Sending data\n");
 
     if (TCP_client_send_DATA(socket_fd, vec, session_id) != SUCCESS)
         return;
     
-    if (check_CONACC(session_id, &conacc) != SUCCESS)
-        return;
 
     RCVD rcvd;
     read_length = readn(socket_fd, &rcvd, sizeof(rcvd));

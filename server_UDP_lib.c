@@ -306,7 +306,6 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
 
 int do_retransmission(int socket_fd, struct sockaddr_in *client_address, socklen_t client_address_len, CONN *conn, bool is_first_DATA_packet, int *nbr_of_retransmits, uint64_t curr_package_id)
 {
-
     (*nbr_of_retransmits)++;
     if (*nbr_of_retransmits > MAX_RETRANSMITS)
     {

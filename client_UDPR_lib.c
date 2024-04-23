@@ -35,10 +35,6 @@ int UDPR_client_init_connection(int socket_fd,
     if (sendto_wrapper(socket_fd, server_address, server_address_len,
                        &conn, sizeof(conn), __FUNCTION__) != SUCCESS)
     {
-        // char msg[100];
-        // strcpy(msg, __FUNCTION__);
-        // strcat(msg, " - sendto error  <= 0");
-        // fatal(msg);
         make_error_msg(__FUNCTION__, " - sendto error <= 0");
         return ERROR;
     }
@@ -56,7 +52,11 @@ int UDPR_client_init_connection(int socket_fd,
     cast_buff_to(&conacc, sizeof(conacc), response_buffer,
                  (size_t)received_length);
     ntoh_CONACC(&conacc);
-
+    if (conacc.package_type_id == CONRJT_ID && conacc.session_id == session_id)
+    {
+        make_error_msg(__FUNCTION__, " - got CONRJT --> connection was REJECTED by server");
+        return CONRJT_ERROR;
+    }
     if (conacc.package_type_id != CONACC_ID || conacc.session_id != session_id)
     {
         return ERROR;
@@ -336,7 +336,11 @@ void UDPR_client_handler(int socket_fd,
 
         if (init_ret_val != SUCCESS)
         {
+            if (init_ret_val == CONRJT_ERROR)
+                return;
+
             nbr_of_retransmits++;
+
             if (nbr_of_retransmits > MAX_RETRANSMITS)
             {
                 make_error_msg(__FUNCTION__, " - nbr of retransmits greater than MAX nbr of retransmits");
