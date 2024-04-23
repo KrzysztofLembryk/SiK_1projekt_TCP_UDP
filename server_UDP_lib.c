@@ -60,17 +60,24 @@ int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
             }
         }
 
+        // If we got connection not from our client, we send CONRJT and wait
+        // for another msg
         if ((client_address->sin_addr.s_addr != correct_addr->sin_addr.s_addr)
          || (client_address->sin_port != correct_addr->sin_port))
         {
+            // We need to check session id of received packet since CONRJT needs
+            // it. CONRJT has only two members: package type and session id thus
+            // we cast received msg to CONRJT
+            CONRJT conrjt;
+            
+            cast_buff_to(&conrjt, sizeof(conrjt), buff, *read_bytes);
+            ntoh_CONRJT(&conrjt);
+
             make_error_msg(__FUNCTION__, " - got packet not from our client, sending CONRJT");
-            // If we got connection not from our client, we send CONRJT and wait
-            // for another msg
-            send_CONRJT(socket_fd, client_address, *client_address_len, session_id);
+            send_CONRJT(socket_fd, client_address, *client_address_len, conrjt.session_id);
+
             continue;
         }
-
-        printf("READ BYTES: %zu\n", (size_t)*read_bytes);
 
         if (*read_bytes == 0)
         {
