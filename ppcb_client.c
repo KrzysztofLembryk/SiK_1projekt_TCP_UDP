@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
             if (DO_TESTS)
             {
                 printf("DOING TCP TESTING!!!!\n");
-                TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, true);
+                TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, true, TCP_PROTOCOL);
             }
             else
             {
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
         case UDP:
             if (DO_TESTS)
             {
-                TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, false);
+                TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, false, UDP_PROTOCOL);
             }
             else
             {
@@ -83,7 +83,14 @@ int main(int argc, char *argv[])
             }
             break;
         case UDPR:
-            UDPR_client_handler(socket_fd, &server_address, vec, session_id);
+            if (DO_TESTS)
+            {
+                TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, false, UDPR_PROTOCOL);
+            }
+            else
+            {
+                UDPR_client_handler(socket_fd, &server_address, vec, session_id);
+            }
             break;
         default:
             break;

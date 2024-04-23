@@ -382,6 +382,13 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         {
             if (data_info.package_type_id == CONN_ID)
             {
+                if (read_bytes != sizeof(CONN))
+                {
+                    make_error_msg(__FUNCTION__, " - got packet with CONN_ID but size of this packet is not equal to sizeof(CONN)");
+                    send_RJT(socket_fd, &client_address, client_address_len,
+                        conn->session_id, curr_package_id);
+                    return;
+                }
                 make_error_msg(__FUNCTION__, " - got old CONN packet instead of DATA, ignoring it");
                 // We have connection established so we ignore clients CONN msgs
                 continue;

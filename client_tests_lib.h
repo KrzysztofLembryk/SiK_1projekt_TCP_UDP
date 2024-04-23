@@ -5,7 +5,7 @@
 #include <netinet/in.h>
 #include "my_vec.h"
 
-void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, bool is_TCP);
+void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, bool is_TCP, int protocol);
 
 
 #endif
