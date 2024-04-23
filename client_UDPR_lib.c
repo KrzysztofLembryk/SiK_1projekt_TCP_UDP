@@ -48,10 +48,10 @@ int UDPR_client_init_connection(int socket_fd,
 
     printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc),
            (size_t)received_length);
-
     cast_buff_to(&conacc, sizeof(conacc), response_buffer,
                  (size_t)received_length);
     ntoh_CONACC(&conacc);
+
     if (conacc.package_type_id == CONRJT_ID && conacc.session_id == session_id)
     {
         make_error_msg(__FUNCTION__, " - got CONRJT --> connection was REJECTED by server");
@@ -61,7 +61,9 @@ int UDPR_client_init_connection(int socket_fd,
     {
         return ERROR;
     }
+
     printf("UDPR client success in connecting to server\n");
+
     return SUCCESS;
 }
 
@@ -93,9 +95,6 @@ int UDPR_client_handle_RCVD(int socket_fd,
             // Recvfrom was < 0
             return ERROR;
         }
-        // there will be another case: (but not impl yet)
-        // else if (wait_ret_val == WRONG_SERVER_ADDRESS)
-        // continue;
 
         cast_buff_to(&rcvd, sizeof(rcvd), response_buff, *received_length);
         ntoh_RCVD(&rcvd);
@@ -180,18 +179,20 @@ int UDPR_client_handle_ACC(int socket_fd,
         }
 
         cast_buff_to(acc, sizeof(*acc), response_buff, *received_length);
+        ntoh_ACC(acc);
 
         if (acc->package_type_id == CONACC_ID)
         {
             // No matter how many conacc we get, we ignore all of them since we
             // established connection with server, thus we wait for ACC
-            // (even though some conacc might have wrong session id, we ignore
-            // them nonetheless)
-            continue;
+            if (acc->session_id == session_id)
+                continue;
+            else
+            {
+                make_error_msg(__FUNCTION__, " - got CONACC package with wrong session id");
+                return ERROR;
+            }
         }
-
-        ntoh_ACC(acc);
-
         if (acc->package_type_id == RCVD_ID )
         {
             if (acc->session_id != session_id)
@@ -259,6 +260,7 @@ int UDPR_client_send_DATA(int socket_fd,
     {
         memset(buff, 0, SEND_BUFF_SIZE + 1);
         memset(response_buff, 0, RESPONSE_BUFF_SIZE);
+
         if (bytes_left < SEND_BUFF_SIZE)
         {
             strncpy(buff, vec->buff + start_cpy_pos, bytes_left);
