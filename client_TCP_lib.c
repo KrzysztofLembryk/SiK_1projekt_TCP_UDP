@@ -18,8 +18,6 @@
 #include "helper_func.h"
 #include "client_TCP_lib.h"
 
-#define SUCCESS 0
-
 int TCP_client_send_CONN(int socket_fd, CONN *conn)
 {
     ssize_t written_length = writen(socket_fd, conn, sizeof(*conn));
@@ -152,6 +150,7 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
         return;
 
     ntoh_CONN(&conn);
+
     CONACC conacc;
     ssize_t read_length = readn(socket_fd, &conacc, sizeof(conacc));
 
@@ -162,8 +161,6 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 
     if (check_CONACC(session_id, &conacc) != SUCCESS)
         return;
-
-    printf("Sending data\n");
 
     if (TCP_client_send_DATA(socket_fd, vec, session_id) != SUCCESS)
         return;
@@ -179,12 +176,4 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
 
     if (check_RCVD(session_id, &rcvd) != SUCCESS)
         return;
-
-    printf("RCVD id: %d, RJT id: %d\n", RCVD_ID, RJT_ID);
-    print_RCVD(&rcvd);
-
-    if (rcvd.package_type_id == RCVD_ID) 
-        printf("received RCVD\n");
-    else
-        printf("received RJT\n");
 }
