@@ -1,2 +1,2 @@
-for file in *.txt; do ./ppcb_client udp 0.0.0.0 3331 <"$file"
+for file in *.txt; do ./ppcb_client tcp 0.0.0.0 3338 <"$file"
 done

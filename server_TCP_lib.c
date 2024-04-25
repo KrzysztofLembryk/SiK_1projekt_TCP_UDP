@@ -52,7 +52,6 @@ int TCP_wait_for_client(int socket_fd, int *c_fd,
     // uint16_t client_port = ntohs(client_address->sin_port);
 
     // printf("\n####\naccepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
-    printf("\n");
     *c_fd = client_fd;
     return SUCCESS;
 }
@@ -336,16 +335,6 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         close(client_fd);
 
         clock_t end = clock();
-        float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-
-        if (nbr_of_bytes_received / 1000 > 100)
-        {
-            printf("%" PRIu64 "MB,", nbr_of_bytes_received / 1000000);
-        }
-        else
-        {
-            printf("%" PRIu64 "KB,", nbr_of_bytes_received / 1000);
-        }
-        printf("%fs\n", seconds);
+        save_to_file("wyniki_TCP", start, end, nbr_of_bytes_received);
     }
 }

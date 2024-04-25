@@ -588,24 +588,11 @@ void UDP_server_handler(int socket_fd)
             break;
         }
 
-        FILE *file;
-        file = fopen("wyniki_UDP", "a");
         clock_t end = clock();
-        float seconds = (float)(end - start) / CLOCKS_PER_SEC;
-
-        if (conn.nbr_of_bytes_to_be_sent / 1000 > 100)
-        {
-            fprintf(file, "%" PRIu64 "MB,", conn.nbr_of_bytes_to_be_sent / 1000000);
-            // fflush(stdout);
-        }
+        if (conn.protocol_id == UDP_PROTOCOL)
+            save_to_file("wyniki_UDP", start, end, conn.nbr_of_bytes_to_be_sent);
         else
-        {
-            fprintf(file, "%" PRIu64 "KB,", conn.nbr_of_bytes_to_be_sent / 1000);
-            // fflush(stdout);
-        }
-        fprintf(file, "%fs\n", seconds);
-        fflush(file);
-        fclose(file);
-        // sleep(1);
+            save_to_file("wyniki_UDPR", start, end, conn.nbr_of_bytes_to_be_sent);
+            
     }
 }

@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <time.h>
 #include "constants.h"
 #include "err.h"
 
@@ -175,4 +176,24 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
     }
 
     return SUCCESS;
+}
+
+void save_to_file(const char *f_name, clock_t start, clock_t end, 
+    uint64_t nbr_of_bytes)
+{
+    FILE *file;
+    file = fopen(f_name, "a");
+    float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+
+    if (nbr_of_bytes / 1000 > 100)
+    {
+        fprintf(file, "%" PRIu64 "MB,", nbr_of_bytes / 1000000);
+    }
+    else
+    {
+        fprintf(file, "%" PRIu64 "KB,", nbr_of_bytes / 1000);
+    }
+    fprintf(file, "%fs,%u\n", seconds, SEND_BUFF_SIZE);
+    fflush(file);
+    fclose(file);
 }

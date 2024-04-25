@@ -76,11 +76,11 @@ int main(int argc, char *argv[])
 
     printf("SEND BUFF SIZE = %u\n", SEND_BUFF_SIZE);
 
-    FILE *file;
-    file = fopen("wyniki_UDP", "a");
-    fprintf(file, "SEND BUFF SIZE %u\n", SEND_BUFF_SIZE);
-    fflush(file);
-    fclose(file);
+    // FILE *file;
+    // file = fopen("wyniki_UDPR", "a");
+    // fprintf(file, "SEND BUFF SIZE %u\n", SEND_BUFF_SIZE);
+    // fflush(file);
+    // fclose(file);
     // Depending on type of server we need to change how our server behaves.
     // For instance TCP server opens socket in listening mode, whereas UDP 
     // server does not
