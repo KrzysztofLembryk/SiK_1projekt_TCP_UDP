@@ -236,7 +236,6 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         {
             if (finish)
             {
-                make_error_msg(__FUNCTION__, " - ending tcp server");
                 return;
             }
             continue;
