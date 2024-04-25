@@ -146,7 +146,7 @@ void TCP_client_handler(int socket_fd, struct sockaddr_in *server_address, my_ve
     CONN conn;
 
     init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
-    if  (TCP_client_send_CONN(socket_fd, &conn) != SUCCESS)
+    if (TCP_client_send_CONN(socket_fd, &conn) != SUCCESS)
         return;
 
     ntoh_CONN(&conn);

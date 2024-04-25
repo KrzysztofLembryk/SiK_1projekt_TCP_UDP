@@ -22,7 +22,6 @@ int UDP_client_CONN_handler(int socket_fd,
 
     init_CONN(&conn, session_id, UDP_PROTOCOL, occupied_size);
 
-    printf("Sending conn package \n");
     if (sendto_wrapper(socket_fd, server_address, server_address_len,
                        &conn, sizeof(conn), __FUNCTION__) != SUCCESS)
     {
@@ -46,8 +45,6 @@ int UDP_client_CONACC_handler(int socket_fd,
         return ERROR;
     }
 
-    printf("Got response, now casting it\n");
-
     CONACC conacc;
 
     printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc), (size_t)received_length);
@@ -63,7 +60,6 @@ int UDP_client_CONACC_handler(int socket_fd,
     }
     if (conacc.session_id != session_id)
     {
-
         make_error_msg(__FUNCTION__, " - received CONACC has wrong session id");
         return ERROR;
     }
@@ -124,7 +120,6 @@ int UDP_client_send_DATA(int socket_fd,
         if (sendto_wrapper(socket_fd, server_address, server_address_len,
                            &data, sizeof(DATA_INFO_t) + be32toh(data.nbr_of_bytes_in_packet), __FUNCTION__) != SUCCESS)
         {
-            printf("- udp client send data\n");
             return ERROR;
         }
     }
@@ -139,7 +134,6 @@ int UDP_client_RCVD_handler(int socket_fd,
 {
     memset(response_buffer, 0, RESPONSE_BUFF_SIZE);
 
-    printf("Waiting for server rcvd\n");
     ssize_t received_length;
 
     if (wait_for_server_response(socket_fd, response_buffer,
@@ -194,7 +188,6 @@ void UDP_client_handler(int socket_fd,
         return;
     }
 
-    printf("Sending data\n");
     if (UDP_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id) != SUCCESS)
     {
         return;

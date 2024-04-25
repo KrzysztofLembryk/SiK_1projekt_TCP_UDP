@@ -51,7 +51,12 @@ int UDPR_client_init_connection(int socket_fd,
     cast_buff_to(&conacc, sizeof(conacc), response_buffer,
                  (size_t)received_length);
     ntoh_CONACC(&conacc);
-
+    
+    if (received_length != sizeof(conacc))
+    [
+        make_error_msg(__FUNCTION__, " - got packet with sizeof not equal to CONACC");
+        return ERROR;
+    ]
     if (conacc.package_type_id == CONRJT_ID && conacc.session_id == session_id)
     {
         make_error_msg(__FUNCTION__, " - got CONRJT --> connection was REJECTED by server");
