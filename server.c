@@ -95,6 +95,7 @@ int main(int argc, char *argv[])
         make_error_msg(__FUNCTION__, " - type of server == DEFAULT");
         break;
     }
+    close(socket_fd);
 
     return 0;
 }
