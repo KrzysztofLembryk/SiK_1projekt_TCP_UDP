@@ -190,6 +190,11 @@ int UDPR_client_handle_ACC(int socket_fd,
 
         if (acc->package_type_id == CONACC_ID)
         {
+            if (*received_length != sizeof(CONACC))
+            {
+                make_error_msg(__FUNCTION__, " - received CONACC packet size is not equal to sizeof(CONACC)");
+                return ERROR;
+            }
             // No matter how many conacc we get, we ignore all of them since we
             // established connection with server, thus we wait for ACC
             if (acc->session_id == session_id && is_before_first_acc)
@@ -214,6 +219,11 @@ int UDPR_client_handle_ACC(int socket_fd,
                 make_error_msg(__FUNCTION__, " - got RCVD packet with wrong session id");
                 return ERROR;
             }
+            if (*received_length != sizeof(RCVD))
+            {
+                make_error_msg(__FUNCTION__, " - received RCVD packet's size is not equal to sizeof(RCVD)");
+                return ERROR;
+            }
 
             (*nbr_of_retransmits)++;
             if ((*nbr_of_retransmits) > MAX_RETRANSMITS)
@@ -232,6 +242,11 @@ int UDPR_client_handle_ACC(int socket_fd,
         if (acc->session_id != session_id)
         {
             make_error_msg(__FUNCTION__, " - got ACC packet with wrong session id");
+            return ERROR;
+        }
+        if (*received_length != sizeof(ACC))
+        {
+            make_error_msg(__FUNCTION__, " - received ACC packet's size is not equal to sizeof(ACC)");
             return ERROR;
         }
         if (acc->package_id < curr_package_id)
