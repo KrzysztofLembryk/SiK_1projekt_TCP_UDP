@@ -133,7 +133,7 @@ void my_vec_read_stdin(my_vec_t *my_vec)
     } while(nbr_of_bytes_read != 0);
 
     printf("\n");
-    my_vec_push_back(my_vec, '\0');
+    // my_vec_push_back(my_vec, '\0');
     // printf("my_vec:\n%s\n", my_vec->buff);
     // printf("nbr of bytes in vec: %" PRIu64 "\n", my_vec->occupied_size);
 }

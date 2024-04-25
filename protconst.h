@@ -6,6 +6,6 @@
 
 // If after MAX_WAIT seconds confirmation about sent package hasn't come from
 //  server we send this package again
-#define MAX_RETRANSMITS 5
+#define MAX_RETRANSMITS 1
 
 #endif

@@ -40,11 +40,11 @@ int make_new_socket(communication_type type_of_comm)
     return socket_fd;
 }
 
-void send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, bool is_TCP)
+void TCP_send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, bool is_TCP)
 {
-    printf("-----INFO ABOUT WRONG CONN TESTS-----\n");
+    printf("-----INFO ABOUT WRONG CONN TESTS - TCP-----\n");
     printf("Tests send CONN package to server with wrong parameters or with wait more than MAX_WAIT = 4\nFor each test we open new socket, but we dont close any in order not to provoke broken pipe error in server\nThere is special tests just for this\n");
-    printf("-------------------------------------\n");
+    printf("-------------------------------------------\n\n");
 
     const int BAD_SESSION_ID __attribute__((unused)) = 0;
     const int WRONG_PROTOCOL __attribute__((unused)) = 1;
@@ -156,18 +156,13 @@ void send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_
             return;
         }
 
+        printf("\n");
         i++;
-        printf("\nI will connect after SLEEP(2)\n");
         fflush(stdout);
         sleep(2);
-        printf("connecting to server\n\n");
+        // printf("connecting to server\n\n");
 
-        if (is_TCP)
-        {
-            socket_fd = make_new_socket(TCP);
-        }
-        else
-            socket_fd = make_new_socket(UDP);
+        socket_fd = make_new_socket(TCP);
 
         if (connect(socket_fd, (struct sockaddr *)server_address,
                     (socklen_t)sizeof(*server_address)) < 0)
@@ -177,9 +172,9 @@ void send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_
     }
 }
 
-void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, bool is_TCP)
+void TCP_send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, bool is_TCP)
 {
-    printf("-----INFO ABOUT WRONG DATA TESTS-----\n");
+    printf("-----INFO ABOUT WRONG DATA TESTS - TCP-----\n");
     printf("Tests send correct CONN package to server and then incorrect DATA packet\nAt least 10byte input file is needed\n");
     printf("-------------------------------------\n");
     const int BAD_SESSION_ID __attribute__((unused)) = 1;
@@ -193,10 +188,10 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
     int i = 1;
     CONN conn;
     int socket_fd = init_socket_fd;
-
-    while (true)
+ 
+    while (i <= 8)
     {
-        printf("connecting to server\n\n");
+        // printf("connecting to server\n\n");
         fflush(stdout);
         // close(socket_fd);
 
@@ -216,7 +211,7 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
         case BAD_SESSION_ID:
             printf("-----BAD SESSION ID of second DATA PACKAGE-----\n");
             printf("We send correct conn, and correct first data packet, but second data packet is send with wrong session id\nCONN packet parameter that stores size of data to send is set to two times of read file size\n");
-            printf("-----------------------------------------------\n");
+            printf("-----------------------------------------------\n\n");
             fflush(stdout);
 
             if (is_TCP)
@@ -363,20 +358,717 @@ void send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_
 
                 init_DATA(&data, session_id, 0, 5, vec->buff);
                 TCP_send_package(socket_fd, &data, sizeof(DATA_INFO_t) + 26);
+                sleep(2);
             }
             break;
         default:
             return;
         }
-
+        printf("\n");
         i++;
-        printf("\nI will connect after SLEEP(2)\n");
         fflush(stdout);
         sleep(2);
     }
 }
 
-void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, bool is_TCP)
+void UDP_send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, int protocol)
+{
+    printf("-----INFO ABOUT WRONG CONN TESTS - UDP-----\n");
+    printf("Tests send CONN package to server with wrong parameters or with wait more than MAX_WAIT = 4\nFor each test we open new socket, but we dont close any in order not to provoke broken pipe error in server\nThere is special tests just for this\n");
+    printf("-------------------------------------------\n\n");
+
+    const int BAD_SESSION_ID __attribute__((unused)) = 0;
+    const int WRONG_PROTOCOL __attribute__((unused)) = 1;
+    const int WRONG_PACKAGE_TYPE __attribute__((unused)) = 2;
+    const int CONNECT_SEND_WAIT __attribute__((unused)) = 3;
+    const int BROKEN_PIPE __attribute__((unused)) = 4;
+    int i = 0;
+    static CONN conn;
+    int socket_fd = init_socket_fd;
+    socklen_t server_address_len = (socklen_t)sizeof(*server_address);
+
+
+    while (true)
+    {
+        switch (i)
+        {
+        case BAD_SESSION_ID:
+            printf("-----BAD SESSION ID-----\n");
+            printf("First we send CONN with session id, then we send DATA with wrong session id\n");
+            printf("------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, 2137, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                       &conn, sizeof(conn), __FUNCTION__);
+
+            // second send to check if connection was closed by server
+            DATA data;
+            init_DATA(&data, 2136, 0, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                       &data, sizeof(data), __FUNCTION__);
+            break;
+        case WRONG_PROTOCOL:
+            printf("-----WRONG PROTOCOL-----\n");
+            printf("We send CONN with wrong protocol type\n");
+            printf("------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                    &conn, sizeof(conn), __FUNCTION__);
+            
+            break;
+        case WRONG_PACKAGE_TYPE:
+            printf("-----WRONG PACKAGE TYPE-----\n");
+            printf("We send conn with wrong package type id\n");
+            printf("----------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+
+            conn.package_type_id = DATA_ID;
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                &conn, sizeof(conn), __FUNCTION__);
+
+            
+            break;
+        case CONNECT_SEND_WAIT:
+            printf("-----CONNECT SEND WAIT MAX_WAIT-----\n");
+            printf("We connecto to server, send CONN and then wait MAX_WAIT + 1 seconds without sending anything\n");
+            printf("------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                &conn, sizeof(conn), __FUNCTION__);
+            sleep(MAX_WAIT + 1);
+
+            break;
+        case BROKEN_PIPE:
+            printf("-----BROKEN PIPE test-----\n");
+            printf("We connect to server, send CONN and send it again so that server needs to respond with RJT then we immediately close socket\n");
+            printf("--------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                &conn, sizeof(conn), __FUNCTION__);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                &conn, sizeof(conn), __FUNCTION__);
+            close(socket_fd);
+            
+            break;
+        default:
+            return;
+        }
+        printf("\n");
+        i++;
+        fflush(stdout);
+        sleep(2);
+        // printf("connecting to server\n\n");
+
+        socket_fd = make_new_socket(UDP);
+
+        if (connect(socket_fd, (struct sockaddr *)server_address,
+                    (socklen_t)sizeof(*server_address)) < 0)
+        {
+            make_error_msg(__FUNCTION__, " - cannot connect to the server");
+        }
+    }
+}
+
+
+void UDP_send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, int protocol)
+{
+    printf("-----INFO ABOUT WRONG DATA TESTS - UDP-----\n");
+    printf("Tests send correct CONN package to server and then incorrect DATA packet\nAt least 10byte input file is needed\n");
+    printf("-------------------------------------------\n\n");
+    const int BAD_SESSION_ID __attribute__((unused)) = 1;
+    const int WRONG_PACKAGE_TYPE __attribute__((unused)) = 2;
+    const int CONNECT_AND_WAIT __attribute__((unused)) = 3;
+    const int SECOND_DATA_PACKAGE_WRONG_ID_SMALLER __attribute__((unused)) = 4;
+    const int SECOND_DATA_PACKAGE_WRONG_ID_GREATER __attribute__((unused)) = 5;
+    const int WRONG_DECLARED_SIZE_IN_CONN_too_much __attribute__((unused)) = 6;
+    const int WRONG_DECLARED_SIZE_IN_CONN_too_little __attribute__((unused)) = 7;
+    const int WRONG_DECLARED_SIZE_IN_DATA __attribute__((unused)) = 8;
+    int i = 1;
+    static CONN conn;
+    static DATA data;
+    int socket_fd = init_socket_fd;
+    socklen_t server_address_len = (socklen_t)sizeof(*server_address);
+
+    while (true)
+    {
+        // printf("connecting to server\n\n");
+        // fflush(stdout);
+        // close(socket_fd);
+
+        socket_fd = make_new_socket(UDP);
+
+        switch (i)
+        {
+        case BAD_SESSION_ID:
+            printf("-----BAD SESSION ID of second DATA PACKAGE-----\n");
+            printf("We send correct conn, and correct first data packet, but second data packet is send with wrong session id\nCONN packet parameter that stores size of data to send is set to two times of read file size\n");
+            printf("-----------------------------------------------\n\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol,
+                        2 * vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            // second send to check if connection was closed by server
+            init_DATA(&data, session_id, 0, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+
+            uint64_t id = 2137;
+            init_DATA(&data, id, 1, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+
+            break;
+        case WRONG_PACKAGE_TYPE:
+            printf("-----WRONG PACKAGE TYPE OF DATA-----\n");
+            printf("We send data packet with wrong package type\n");
+            printf("------------------------------------\n");
+            fflush(stdout);
+            
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            init_DATA(&data, session_id, 0, vec->occupied_size, vec->buff);
+
+            data.package_type_id = CONN_ID;
+
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+
+            break;
+        case CONNECT_AND_WAIT:
+            printf("-----CONNECT SEND DATA WAIT MAX_WAIT-----\n");
+            printf("We send DATA and then wait for MAX_WAIT + 1 s\n");
+            printf("-----------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            init_DATA(&data, session_id, 0, 6, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 6, __FUNCTION__);
+            sleep(MAX_WAIT + 1);
+
+            break;
+        case SECOND_DATA_PACKAGE_WRONG_ID_SMALLER:
+            printf("-----SECOND DATA PACKAGE WRONG ID - SMALLER-----\n");
+            printf("We send first DATA packet with correct package id, but second with wrong\n");
+            printf("------------------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            char msg1[] = "smaller";
+            init_DATA(&data, session_id, 0, 7, msg1);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 7, __FUNCTION__);
+
+            init_DATA(&data, session_id, 0, vec->occupied_size - 7, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size - 7, __FUNCTION__);
+
+            break;
+        case SECOND_DATA_PACKAGE_WRONG_ID_GREATER:
+            printf("-----SECOND DATA PACKAGE WRONG ID - GREATER-----\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            char msg2[] = "greater";
+
+            init_DATA(&data, session_id, 0, 7, msg2);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 7, __FUNCTION__);
+
+            init_DATA(&data, session_id, 3, vec->occupied_size - 7, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size - 7, __FUNCTION__);
+
+            break;
+        case WRONG_DECLARED_SIZE_IN_CONN_too_much:
+            printf("-----TOO MUCH DECLARED DATA SIZE IN CONN-----\n");
+            printf("We send CONN package with file nbr of bytes to send equal to size + 20\nThen we send read file in two packets\nAfter sending our packets we immediately end connection and create new socket to send package as new CLIENT - server should print error since it will get package from someone else than us\n");
+            printf("---------------------------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size + 20);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+
+            init_DATA(&data, session_id, 0, 5, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 5, __FUNCTION__);
+
+            init_DATA(&data, session_id, 1, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+
+            socket_fd = make_new_socket(UDP);
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+            sleep(MAX_WAIT);
+
+            break;
+        case WRONG_DECLARED_SIZE_IN_CONN_too_little:
+            printf("-----TOO LITTLE DECLARED DATA SIZE IN CONN-----\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            init_DATA(&data, session_id, 0, 5, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 5, __FUNCTION__);
+
+            init_DATA(&data, session_id, 1, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+            sleep(MAX_WAIT);
+
+            break;
+        case WRONG_DECLARED_SIZE_IN_DATA:
+            printf("-----WRONG DECLARED SIZE IN DATA-----\n");
+            printf("so we send our msg and some junk\n");
+            printf("-------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+
+            init_DATA(&data, session_id, 0, 5, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 26, __FUNCTION__);
+
+            break;
+        default:
+            return;
+        }
+        printf("\n");
+        i++;
+        fflush(stdout);
+        sleep(2);
+    }
+}
+
+void UDPR_send_WRONG_CONN(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, int protocol)
+{
+    printf("-----INFO ABOUT WRONG CONN TESTS - UDPR-----\n");
+    printf("Tests send CONN package to server with wrong parameters or with wait more than MAX_WAIT = 4, MAX_RETRANSMITS = 1\nFor each test we open new socket, but we dont close any in order not to provoke broken pipe error in server\nThere is special tests just for this\n");
+    printf("-------------------------------------------\n\n");
+
+    const int BAD_SESSION_ID __attribute__((unused)) = 0;
+    const int WRONG_PROTOCOL __attribute__((unused)) = 1;
+    const int WRONG_PACKAGE_TYPE __attribute__((unused)) = 2;
+    const int CONNECT_SEND_WAIT __attribute__((unused)) = 3;
+    const int BROKEN_PIPE __attribute__((unused)) = 4;
+    int i = 0;
+    static CONN conn;
+    int socket_fd = init_socket_fd;
+    socklen_t server_address_len = (socklen_t)sizeof(*server_address);
+
+
+    while (true)
+    {
+        switch (i)
+        {
+        case BAD_SESSION_ID:
+            printf("-----BAD SESSION ID-----\n");
+            printf("First we send CONN with session id, then we send DATA with wrong session id\n");
+            printf("------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, 2137, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                       &conn, sizeof(conn), __FUNCTION__);
+
+            // second send to check if connection was closed by server
+            DATA data;
+            init_DATA(&data, 2136, 0, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                       &data, sizeof(data), __FUNCTION__);
+            break;
+        case WRONG_PROTOCOL:
+            printf("-----WRONG PROTOCOL-----\n");
+            printf("We send CONN with wrong protocol type\n");
+            printf("------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, TCP_PROTOCOL, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                    &conn, sizeof(conn), __FUNCTION__);
+            
+            break;
+        case WRONG_PACKAGE_TYPE:
+            printf("-----WRONG PACKAGE TYPE-----\n");
+            printf("We send conn with wrong package type id\n");
+            printf("----------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+
+            conn.package_type_id = DATA_ID;
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                &conn, sizeof(conn), __FUNCTION__);
+
+            
+            break;
+        case CONNECT_SEND_WAIT:
+            printf("-----CONNECT SEND WAIT MAX_WAIT-----\n");
+            printf("We connecto to server, send CONN and then wait MAX_WAIT + 1 seconds without sending anything, server should ask for retransmission\n");
+            printf("------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                &conn, sizeof(conn), __FUNCTION__);
+            sleep(MAX_WAIT + 1);
+            sleep(MAX_WAIT + 1);
+
+            break;
+        case BROKEN_PIPE:
+            printf("-----BROKEN PIPE test-----\n");
+            printf("We connect to server, send CONN and send it again (server should ignore second conn) then we immediately close socket, and send packet as new client - server should ignore it and send CONRJT\n");
+            printf("--------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                &conn, sizeof(conn), __FUNCTION__);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+                &conn, sizeof(conn), __FUNCTION__);
+            close(socket_fd);
+            sleep(MAX_WAIT + 1);
+
+            int new_socket = make_new_socket(UDP);
+
+            init_CONN(&conn, 2137, protocol, vec->occupied_size);
+            sendto_wrapper(new_socket, server_address, server_address_len,
+                &conn, sizeof(conn), __FUNCTION__);
+            sleep(MAX_WAIT + 1);
+
+            break;
+        default:
+            return;
+        }
+        printf("\n");
+        i++;
+        fflush(stdout);
+        sleep(2);
+        // printf("connecting to server\n\n");
+
+        socket_fd = make_new_socket(UDP);
+
+        if (connect(socket_fd, (struct sockaddr *)server_address,
+                    (socklen_t)sizeof(*server_address)) < 0)
+        {
+            make_error_msg(__FUNCTION__, " - cannot connect to the server");
+        }
+    }
+}
+
+
+void UDPR_send_WRONG_DATA(int init_socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, int protocol)
+{
+    printf("-----INFO ABOUT WRONG DATA TESTS - UDPR-----\n");
+    printf("Tests send correct CONN package to server and then incorrect DATA packet\nAt least 10byte input file is needed\n");
+    printf("-------------------------------------------\n\n");
+    const int BAD_SESSION_ID __attribute__((unused)) = 1;
+    const int WRONG_PACKAGE_TYPE __attribute__((unused)) = 2;
+    const int CONNECT_AND_WAIT __attribute__((unused)) = 3;
+    const int SECOND_DATA_PACKAGE_WRONG_ID_SMALLER __attribute__((unused)) = 4;
+    const int SECOND_DATA_PACKAGE_WRONG_ID_GREATER __attribute__((unused)) = 5;
+    const int WRONG_DECLARED_SIZE_IN_CONN_too_much __attribute__((unused)) = 6;
+    const int WRONG_DECLARED_SIZE_IN_CONN_too_little __attribute__((unused)) = 7;
+    const int WRONG_DECLARED_SIZE_IN_DATA __attribute__((unused)) = 8;
+    const int SEND_CONN_DATA_CONN __attribute__((unused)) = 9;
+    const int SEND_CONN_WAIT_DATA __attribute__((unused)) = 10;
+    const int SEND_CONN_CONN_DATA __attribute__((unused)) = 11;
+    const int SEND_CONN_DATA_OTHER_CLIENT_INTERRUPTS __attribute__((unused)) = 12;
+    
+
+    int i = 1;
+    static CONN conn;
+    static DATA data;
+    int socket_fd = init_socket_fd;
+    socklen_t server_address_len = (socklen_t)sizeof(*server_address);
+
+    while (true)
+    {
+        // printf("connecting to server\n\n");
+        // fflush(stdout);
+        // close(socket_fd);
+
+        socket_fd = make_new_socket(UDP);
+
+        switch (i)
+        {
+        case BAD_SESSION_ID:
+            printf("-----BAD SESSION ID of second DATA PACKAGE-----\n");
+            printf("We send correct conn, and correct first data packet, but second data packet is send with wrong session id\nCONN packet parameter that stores size of data to send is set to two times of read file size\n");
+            printf("-----------------------------------------------\n\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol,
+                        2 * vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            // second send to check if connection was closed by server
+            init_DATA(&data, session_id, 0, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+
+            init_DATA(&data, 2137, 1, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+
+            break;
+        case WRONG_PACKAGE_TYPE:
+            printf("-----WRONG PACKAGE TYPE OF DATA-----\n");
+            printf("We send data packet with wrong package type\n");
+            printf("------------------------------------\n");
+            fflush(stdout);
+            
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            init_DATA(&data, session_id, 0, vec->occupied_size, vec->buff);
+
+            data.package_type_id = CONN_ID;
+
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+
+            break;
+        case CONNECT_AND_WAIT:
+            printf("-----CONNECT SEND DATA WAIT MAX_WAIT-----\n");
+            printf("We send CONN then DATA then after sleep(MAX_WAIT + 1) the same DATA (should be ignored by server) and then wait for MAX_WAIT + 1 s\n");
+            printf("-----------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            init_DATA(&data, session_id, 0, 6, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 6, __FUNCTION__);
+            sleep(MAX_WAIT + 1);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 6, __FUNCTION__);
+            sleep(MAX_WAIT + 1);
+            sleep(MAX_WAIT + 1);
+
+            break;
+        case SECOND_DATA_PACKAGE_WRONG_ID_SMALLER:
+            printf("-----SECOND DATA PACKAGE WRONG ID - SMALLER-----\n");
+            printf("We send first DATA packet with correct package id, but second with wrong\n");
+            printf("------------------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            char msg1[] = "smaller";
+            init_DATA(&data, session_id, 0, 7, msg1);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 7, __FUNCTION__);
+
+            init_DATA(&data, session_id, 0, vec->occupied_size - 7, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size - 7, __FUNCTION__);
+            sleep(MAX_WAIT + 1);
+            sleep(MAX_WAIT + 1);
+            break;
+        case SECOND_DATA_PACKAGE_WRONG_ID_GREATER:
+            printf("-----SECOND DATA PACKAGE WRONG ID - GREATER-----\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            char msg2[] = "greater";
+
+            init_DATA(&data, session_id, 0, 7, msg2);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 7, __FUNCTION__);
+
+            init_DATA(&data, session_id, 3, vec->occupied_size - 7, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size - 7, __FUNCTION__);
+
+            break;
+        case WRONG_DECLARED_SIZE_IN_CONN_too_much:
+            printf("-----TOO MUCH DECLARED DATA SIZE IN CONN-----\n");
+            printf("We send CONN package with file nbr of bytes to send equal to size + 20\nThen we send read file in two packets\nAfter sending our packets we immediately end connection and create new socket to send package as new CLIENT - server should print error since it will get package from someone else than us\n");
+            printf("---------------------------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size + 20);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+
+            init_DATA(&data, session_id, 0, 5, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 5, __FUNCTION__);
+
+            init_DATA(&data, session_id, 1, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+
+            socket_fd = make_new_socket(UDP);
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+            sleep(MAX_WAIT);
+            sleep(MAX_WAIT);
+
+            break;
+        case WRONG_DECLARED_SIZE_IN_CONN_too_little:
+            printf("-----TOO LITTLE DECLARED DATA SIZE IN CONN-----\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            init_DATA(&data, session_id, 0, 5, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 5, __FUNCTION__);
+
+            init_DATA(&data, session_id, 1, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+            sleep(MAX_WAIT);
+
+            break;
+        case WRONG_DECLARED_SIZE_IN_DATA:
+            printf("-----WRONG DECLARED SIZE IN DATA-----\n");
+            printf("so we send our msg and some junk\n");
+            printf("-------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+
+            init_DATA(&data, session_id, 0, 5, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 26, __FUNCTION__);
+
+            break;
+        case SEND_CONN_DATA_CONN:
+            printf("-----SEND CONN DATA CONN-----\n");
+            printf("We send CONN, then DATA but then CONN again - server should end connection with us \n");
+            printf("-------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+
+            init_DATA(&data, session_id, 0, 5, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 5, __FUNCTION__);
+
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            break;
+        case SEND_CONN_WAIT_DATA:
+            printf("-----SEND CONN WAIT DATA-----\n");
+            printf("We send CONN, then wait for server retransmission then whole DATA\n");
+            printf("-------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+            sleep(MAX_WAIT + 1);
+
+            init_DATA(&data, session_id, 0, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+            break;
+        case SEND_CONN_CONN_DATA:
+            printf("-----SEND CONN CONN DATA-----\n");
+            printf("We send CONN, then CONN (should be ignored) then whole DATA\n");
+            printf("-------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            init_DATA(&data, session_id, 0, vec->occupied_size, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+            break;
+        case SEND_CONN_DATA_OTHER_CLIENT_INTERRUPTS:
+            printf("-----SEND CONN part of DATA other client interrupts and rest of DATA-----\n");
+            printf("-------------------------------------\n");
+            fflush(stdout);
+
+            init_CONN(&conn, session_id, protocol, vec->occupied_size);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &conn, sizeof(conn), __FUNCTION__);
+
+            init_DATA(&data, session_id, 0, 6, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + 6, __FUNCTION__);
+
+            int new_socket = make_new_socket(UDP);
+            init_DATA(&data, 2137, 0, vec->occupied_size, vec->buff);
+            sendto_wrapper(new_socket, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size, __FUNCTION__);
+
+            init_DATA(&data, session_id, 1, vec->occupied_size - 6, vec->buff);
+            sendto_wrapper(socket_fd, server_address, server_address_len,
+            &data, sizeof(DATA_INFO_t) + vec->occupied_size - 6, __FUNCTION__);
+
+            break;
+        default:
+            return;
+        }
+        printf("\n");
+        i++;
+        fflush(stdout);
+        sleep(2);
+    }
+}
+
+void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_vec_t *vec, uint64_t session_id, bool is_TCP, int protocol)
 {
     // // Connect to the server.
     // if (connect(socket_fd, (struct sockaddr *)server_address,
@@ -385,7 +1077,7 @@ void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_
     //     make_error_msg(__FUNCTION__, " - cannot connect to the server");
     //     return;
     // }
-
+    printf("---BETWEEN EACH CONNECTION there is sleep(2)---\n");
     int i = 0;
 
     while (true)
@@ -396,13 +1088,36 @@ void TCP_UDP_client_tests(int socket_fd, struct sockaddr_in *server_address, my_
             printf("\n||||||||||||||||||||||||||\n");
             printf("-----WRONG CONN TESTS-----\n");
             printf("||||||||||||||||||||||||||\n\n");
-            send_WRONG_CONN(socket_fd, server_address, vec, session_id, is_TCP);
+            if (protocol == TCP_PROTOCOL)
+            {
+                TCP_send_WRONG_CONN(socket_fd, server_address, vec, session_id, is_TCP);
+            }
+            else
+            {
+                if (protocol == UDP_PROTOCOL)
+                    UDP_send_WRONG_CONN(socket_fd, server_address, vec, session_id, protocol);
+                else
+                {
+
+                    UDPR_send_WRONG_CONN(socket_fd, server_address, vec, session_id, protocol);
+                }
+            }
             break;
         case WRONG_DATA:
             printf("\n||||||||||||||||||||||||||\n");
             printf("-----WRONG DATA TESTS-----\n");
             printf("||||||||||||||||||||||||||\n\n");
-            send_WRONG_DATA(socket_fd, server_address, vec, session_id, is_TCP);
+            if (protocol == TCP_PROTOCOL)
+            {
+                TCP_send_WRONG_DATA(socket_fd, server_address, vec, session_id, is_TCP);
+            }
+            else
+            {
+                if (protocol == UDP_PROTOCOL)
+                    UDP_send_WRONG_DATA(socket_fd, server_address, vec, session_id, protocol);
+                else
+                    UDPR_send_WRONG_DATA(socket_fd, server_address, vec, session_id, protocol);
+            }
             break;
         default:
             printf("----------TESTS ENDED----------\n");
