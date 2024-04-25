@@ -64,6 +64,7 @@ int UDPR_client_init_connection(int socket_fd,
     }
     if (conacc.package_type_id != CONACC_ID || conacc.session_id != session_id)
     {
+        make_error_msg(__FUNCTION__, " - got sth what is not CONACC");
         return ERROR;
     }
 
@@ -92,12 +93,12 @@ int UDPR_client_handle_RCVD(int socket_fd,
             // We wait for rcvd, if we didnt get it in MAX_WAIT we get error
             // since we cannot do the retransmission anymore since we already
             // sent all data
-            make_error_msg(__FUNCTION__, " - timeout");
+            make_error_msg(__FUNCTION__, " - timeout, cannot do retranssmision,since last DATA packet was accepted");
             return ERROR;
         }
         else if (wait_ret_val == ERROR)
         {
-            // Recvfrom was < 0
+            // Recvfrom was < 0 rcvd
             return ERROR;
         }
 
@@ -159,7 +160,8 @@ int UDPR_client_handle_ACC(int socket_fd,
                            uint64_t curr_package_id,
                            uint64_t session_id,
                            unsigned long *real_server_s_addr,
-                           unsigned short server_port)
+                           unsigned short server_port,
+                           bool is_before_first_acc)
 {
     // We wait for server response
     do
@@ -190,11 +192,18 @@ int UDPR_client_handle_ACC(int socket_fd,
         {
             // No matter how many conacc we get, we ignore all of them since we
             // established connection with server, thus we wait for ACC
-            if (acc->session_id == session_id)
+            if (acc->session_id == session_id && is_before_first_acc)
                 continue;
             else
             {
-                make_error_msg(__FUNCTION__, " - got CONACC package with wrong session id");
+                if (!is_before_first_acc)
+                {
+                    make_error_msg(__FUNCTION__, " - got CONACC package after receiving some ACC packages");
+                }
+                else
+                {
+                    make_error_msg(__FUNCTION__, " - got CONACC package with wrong session id");
+                }
                 return ERROR;
             }
         }
@@ -260,8 +269,9 @@ int UDPR_client_send_DATA(int socket_fd,
     static char buff[SEND_BUFF_SIZE + 1];
     static char response_buff[RESPONSE_BUFF_SIZE];
     DATA data;
+    bool is_before_first_acc = true;
 
-    while (bytes_sent != vec->occupied_size)
+    while (bytes_sent < vec->occupied_size)
     {
         memset(buff, 0, SEND_BUFF_SIZE + 1);
         memset(response_buff, 0, RESPONSE_BUFF_SIZE);
@@ -304,13 +314,15 @@ int UDPR_client_send_DATA(int socket_fd,
 
         ACC acc;
         int acc_ret_val = UDPR_client_handle_ACC(socket_fd, response_buff,
-                                                 &acc, &received_length, nbr_of_retransmits, curr_package_id, session_id, real_server_s_addr, server_address->sin_port);
+                                                 &acc, &received_length, nbr_of_retransmits, curr_package_id, session_id, real_server_s_addr, server_address->sin_port,
+                                                 is_before_first_acc);
 
         if (acc_ret_val == ERROR)
             return ERROR;
         else if (acc_ret_val == RETRANSMISSION)
             continue;
 
+        is_before_first_acc = false;
         // Otherwise we got correct ACC thus we can increase curr_package_id
         // and start_cpt_pos to be able to send next data package
         curr_package_id++;
