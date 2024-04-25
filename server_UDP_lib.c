@@ -312,6 +312,8 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
         print_data_to_stdout(buff + sizeof(data_info), data_info.package_id, data_info.nbr_of_bytes_in_packet);
     }
 
+    printf("bytes_recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
+
     // if bytes_recvd == bytes_to_receive this means that we've got all declared
     // data and thus we need to send rcvd msg
     if (bytes_recvd == bytes_to_receive)
@@ -500,6 +502,8 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         print_data_to_stdout(buff + sizeof(data_info), data_info.package_id, data_info.nbr_of_bytes_in_packet);
 
     }
+
+    printf("bytes_recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
 
     if (bytes_recvd == bytes_to_receive)
         send_RCVD(socket_fd, &client_address, client_address_len, conn->session_id);
