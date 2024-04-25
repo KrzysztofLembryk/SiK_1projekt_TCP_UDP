@@ -2,7 +2,7 @@
 #define CONSTANTS_H
 
 // -----DO TESTS CONSTANT-----
-#define DO_TESTS 1
+#define DO_TESTS 0
 
 // -----TCP SERVER QUEUE LEN-----
 

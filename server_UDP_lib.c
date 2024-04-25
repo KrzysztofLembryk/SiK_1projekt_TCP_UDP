@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "constants.h"
 #include "common.h"
@@ -16,10 +17,20 @@
 #include "err.h"
 #include "protconst.h"
 
+static bool finish = false;
+
+/* Termination signal handling. */
+static void catch_int() 
+{
+    finish = true;
+}
 // forward declaration of send_CONRJT, since it's used in read_data_to_buffer
 int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
                 socklen_t client_address_len, uint64_t session_id);
 
+int send_RJT(int socket_fd, struct sockaddr_in *client_address,
+             socklen_t client_address_len, uint64_t session_id,
+             uint64_t package_id);
 // - Function reads maximally RECEIVE_BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
 // - If recvfrom read <= 0 bytes func returns ERROR, function checks if timeout
@@ -499,8 +510,12 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
     }
 }
 
-void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
+void UDP_server_handler(int socket_fd)
 {
+    // We install signal handler so that we can end execution of server app
+    // with proper socket closure
+    install_signal_handler(SIGINT, catch_int);
+
     static char buff[RECEIVE_BUFFOR_SIZE];
 
     while (true)
@@ -522,7 +537,11 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
                                                &read_bytes,
                                                &client_address);
         if (read_ret_val < 0)
+        {
+            if (finish)
+                return;
             continue;
+        }
 
         CONN conn;
 

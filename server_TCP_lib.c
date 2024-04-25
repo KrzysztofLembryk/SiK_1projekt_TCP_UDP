@@ -11,6 +11,7 @@
 // includes htobe64 etc.:
 #include <endian.h>
 #include <errno.h>
+#include <signal.h>
 
 #include "err.h"
 #include "common.h"
@@ -18,6 +19,14 @@
 #include "helper_func.h"
 #include "server_TCP_lib.h"
 #include "constants.h"
+
+static bool finish = false;
+
+/* Termination signal handling. */
+static void catch_int() 
+{
+    finish = true;
+}
 
 // - Function waits for new client on accept
 // - Function sets sockaddr_in *client_address to client who was accepted
@@ -201,6 +210,10 @@ void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len
 // - Server closes clients' file descriptors after ending connections
 void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int queue_len)
 {
+    // We install signal handler so that we can end execution of server app
+    // with proper socket closure
+    install_signal_handler(SIGINT, catch_int);
+
     // Since its TCP server we switch its socket to listening
     if (listen(socket_fd, queue_len) < 0) 
         syserr("TCP-listen-error\n");
@@ -221,9 +234,14 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         // since we don't want to stop server from working
         if (TCP_wait_for_client(socket_fd, &client_fd, &client_address) != SUCCESS)
         {
+            if (finish)
+            {
+                make_error_msg(__FUNCTION__, " - ending tcp server");
+                return;
+            }
             continue;
         }
-
+        
         // We need to set time for our client in order to prevent client from 
         // connecting and not sending anything thus blocking our server
         set_timeout_for_client_socket(client_fd, MAX_WAIT);

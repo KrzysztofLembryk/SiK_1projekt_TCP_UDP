@@ -85,11 +85,11 @@ int main(int argc, char *argv[])
         break; 
     case UDP:
         printf("running UDP SERVER\n");
-        UDP_server_handler(socket_fd, &server_address);
+        UDP_server_handler(socket_fd);
         break;
     case UDPR:
         printf("running UDPR SERVER\n");
-        UDP_server_handler(socket_fd, &server_address);
+        UDP_server_handler(socket_fd);
         break;
     default:
         make_error_msg(__FUNCTION__, " - type of server == DEFAULT");
