@@ -222,8 +222,6 @@ int check_if_correct_DATA_packet(char *buff,
 {
     cast_buff_to(d_info, sizeof(*d_info), buff, (size_t)read_bytes);
     ntoh_DATA_INFO(d_info);
-    // printf("Printing info about received data:\n");
-    // print_DATA_INFO(d_info);
 
     if (d_info->package_type_id != DATA_ID)
     {
@@ -251,9 +249,6 @@ int check_if_correct_DATA_packet(char *buff,
     // is incorrect thus we end connection
     if ((size_t)read_bytes != sizeof(*d_info) + d_info->nbr_of_bytes_in_packet)
     {
-        printf("Read bytes: %zu\n", (size_t)read_bytes);
-        printf("sizeof dinfo: %zu\n", sizeof(*d_info));
-        printf("nbr of bytes in data: %" PRIu32 "\n", d_info->nbr_of_bytes_in_packet);
         make_error_msg(__FUNCTION__, " - nbr of received bytes from client is not equal to declared nbr of bytes in DATA_INFO header");
         return WRONG_PACKAGE_SIZE;
     }
@@ -272,7 +267,6 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
 
     while (bytes_recvd < bytes_to_receive)
     {
-        printf("waiting for packet [%lu]\n", curr_package_id);
         ssize_t read_bytes;
 
         int read_ret_val = read_data_to_buffer(socket_fd, buff,
@@ -305,8 +299,6 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
         bytes_recvd += data_info.nbr_of_bytes_in_packet;
 
         print_data_to_stdout(buff + sizeof(data_info), data_info.package_id, data_info.nbr_of_bytes_in_packet);
-
-        printf("bytes recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
     }
 
     // if bytes_recvd == bytes_to_receive this means that we've got all declared
@@ -496,7 +488,6 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
 
         print_data_to_stdout(buff + sizeof(data_info), data_info.package_id, data_info.nbr_of_bytes_in_packet);
 
-        printf("bytes recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
     }
 
     if (bytes_recvd == bytes_to_receive)
@@ -510,9 +501,6 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
 
 void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
 {
-    printf("UDPserver is listening on port %" PRIu16 "\n",
-           ntohs(server_address->sin_port));
-
     static char buff[RECEIVE_BUFFOR_SIZE];
 
     while (true)
@@ -564,11 +552,9 @@ void UDP_server_handler(int socket_fd, struct sockaddr_in *server_address)
         switch (conn.protocol_id)
         {
         case UDP_PROTOCOL:
-            printf("Will be receiving data from client\n");
             UDP_data_receive(socket_fd, buff, &conn, &client_address);
             break;
         case UDPR_PROTOCOL:
-            printf("UDPR server will be receiving data from client\n");
             UDPR_data_receive(socket_fd, buff, &conn, &client_address, client_address_len);
             break;
         default:

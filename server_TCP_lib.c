@@ -95,6 +95,11 @@ int TCP_get_DATA_metainfo(int client_fd, DATA_INFO_t *data_metainfo,
 
     ntoh_DATA_INFO(data_metainfo);
 
+    if (read_length != sizeof(DATA_INFO_t))
+    {
+        make_error_msg(__FUNCTION__, " - received nbr of bytes is not equal to sizeof(DATA_INFO_t)");
+        return ERROR;
+    }
     if(data_metainfo->package_type_id != DATA_ID)
     {
         make_error_msg(__FUNCTION__, " - wrong package type id");
@@ -226,7 +231,6 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         // Now we want to receive CONN packet with package_type = CONN_ID and
         // protocol_id = TCP_PROTOCOL to establish connection with client
         static CONN conn;
-        conn.package_type_id = 77;
 
         // If dont receive correct CONN packet we end connection with client
         // and move on.

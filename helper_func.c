@@ -100,7 +100,6 @@ void print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len)
 {
     printf("[packet: %" PRIu64 "]:\n%.*s\n", package_id, (int)buff_len, buff);
     fflush(stdout);
-    // printf("[packet: %" PRIu64 "]:\n", package_id);
 }
 
 // - Function sends data using sendto() and handles errors returned by it
@@ -161,18 +160,12 @@ int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_s
         }
         if (first_wait)
         {
-            printf("FIRST WAIT, server addres: %u\n", receive_address.sin_addr.s_addr);
             first_wait = false;
             *real_server_s_addr = receive_address.sin_addr.s_addr;
         }
         if (receive_address.sin_addr.s_addr != *real_server_s_addr ||
         receive_address.sin_port != server_port)
         {
-            printf("---------------------------------------------------\n");
-            printf("received addr s_addr: %u, correct addr s_addr: %lu\n", receive_address.sin_addr.s_addr, *real_server_s_addr);
-            printf("received addre port: %hu, correct addr port: %hu\n", receive_address.sin_port, server_port);
-            printf("---------------------------------------------------\n");
-
             // If we got packet not from our server we ignore it
             make_error_msg(__FUNCTION__, " - got msg not from my server, ignoring it");
             continue;
