@@ -24,22 +24,37 @@ my_vec_t *read_stdin()
 
 int main(int argc, char *argv[])
 {
-    // if (argc > 4 || argc < 3) 
+    if (argc > 4 || argc < 3) 
+        fatal("usage: %s <protocol type> (<host> <port>) or <server address:port>", argv[0]);
+
+    // if (argc != 4) 
     //     fatal("usage: %s <protocol type> (<host> <port>) or <server address:port>", argv[0]);
 
-    if (argc != 4) 
-        fatal("usage: %s <protocol type> (<host> <port>) or <server address:port>", argv[0]);
+    communication_type type_of_comm = check_communication_type(argv[1]);
+    // char *host = argv[2];
+    // uint16_t port = port_from_str_to_ul(argv[3]);
+    // struct sockaddr_in server_address = get_server_address(host, port);
+
+    char *host; 
+    uint16_t port; 
+    struct sockaddr_in server_address; 
+
+    if (argc == 4)
+    {
+        host = argv[2];
+        port = port_from_str_to_ul(argv[3]);
+        server_address = get_server_address(host, port);
+    }
+    else if (argc == 3)
+    {
+        fatal("Not yet implemented");
+    }
 
     srand(time(NULL));   
 
     uint32_t session_id_significant = rand();      
     uint32_t session_id_less_significant = rand();      
     uint64_t session_id = (uint64_t) session_id_significant << 32 | session_id_less_significant;
-
-    communication_type type_of_comm = check_communication_type(argv[1]);
-    const char *host = argv[2];
-    uint16_t port = port_from_str_to_ul(argv[3]);
-    struct sockaddr_in server_address = get_server_address(host, port);
 
     printf("connecting to host: %s, port: %d\n", host, port);
 
@@ -64,7 +79,6 @@ int main(int argc, char *argv[])
         case TCP:
             if (DO_TESTS)
             {
-                printf("DOING TCP TESTING!!!!\n");
                 TCP_UDP_client_tests(socket_fd, &server_address, vec, session_id, true, TCP_PROTOCOL);
             }
             else

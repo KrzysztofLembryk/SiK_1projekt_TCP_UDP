@@ -12,6 +12,7 @@
 #include <endian.h>
 #include <errno.h>
 #include <signal.h>
+#include <time.h>
 
 #include "err.h"
 #include "common.h"
@@ -47,11 +48,11 @@ int TCP_wait_for_client(int socket_fd, int *c_fd,
         return ERROR;
     }
     
-    char const *client_ip = inet_ntoa(client_address->sin_addr);
-    uint16_t client_port = ntohs(client_address->sin_port);
+    // char const *client_ip = inet_ntoa(client_address->sin_addr);
+    // uint16_t client_port = ntohs(client_address->sin_port);
 
-    printf("\n####\naccepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
-
+    // printf("\n####\naccepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
+    printf("\n");
     *c_fd = client_fd;
     return SUCCESS;
 }
@@ -240,7 +241,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
             }
             continue;
         }
-        
+        clock_t start = clock();
         // We need to set time for our client in order to prevent client from 
         // connecting and not sending anything thus blocking our server
         set_timeout_for_client_socket(client_fd, MAX_WAIT);
@@ -258,7 +259,6 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         }  
 
         ntoh_CONN(&conn);
-        print_CONN(&conn);
 
         // We send CONACC to client to tell him we accepted his connection
         static CONACC conacc;
@@ -322,7 +322,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
                 break;
             }
-            TCP_print_data_to_stdout(buff, data_metainfo.package_id, data_metainfo.nbr_of_bytes_in_packet);
+            // TCP_print_data_to_stdout(buff, data_metainfo.package_id, data_metainfo.nbr_of_bytes_in_packet);
         }
 
         if (wrong_packet_err)
@@ -334,5 +334,18 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         init_RCVD(&rcvd, conn.session_id);
         TCP_send_packet(&rcvd, sizeof(rcvd), client_fd);
         close(client_fd);
+
+        clock_t end = clock();
+        float seconds = (float)(end - start) / CLOCKS_PER_SEC;
+
+        if (nbr_of_bytes_received / 1000 > 100)
+        {
+            printf("%" PRIu64 "MB,", nbr_of_bytes_received / 1000000);
+        }
+        else
+        {
+            printf("%" PRIu64 "KB,", nbr_of_bytes_received / 1000);
+        }
+        printf("%fs\n", seconds);
     }
 }
