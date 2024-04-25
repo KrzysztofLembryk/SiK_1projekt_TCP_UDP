@@ -29,8 +29,6 @@ int UDPR_client_init_connection(int socket_fd,
     ssize_t received_length;
     CONN conn;
     init_CONN(&conn, session_id, UDPR_PROTOCOL, occupied_size);
-    printf("Sending conn package \n");
-    printf("to server: %u, port %hu\n", server_address->sin_addr.s_addr, server_address->sin_port);
 
     if (sendto_wrapper(socket_fd, server_address, server_address_len,
                        &conn, sizeof(conn), __FUNCTION__) != SUCCESS)
@@ -46,17 +44,15 @@ int UDPR_client_init_connection(int socket_fd,
 
     CONACC conacc;
 
-    printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc),
-           (size_t)received_length);
     cast_buff_to(&conacc, sizeof(conacc), response_buffer,
                  (size_t)received_length);
     ntoh_CONACC(&conacc);
     
     if (received_length != sizeof(conacc))
-    [
+    {
         make_error_msg(__FUNCTION__, " - got packet with sizeof not equal to CONACC");
         return ERROR;
-    ]
+    }
     if (conacc.package_type_id == CONRJT_ID && conacc.session_id == session_id)
     {
         make_error_msg(__FUNCTION__, " - got CONRJT --> connection was REJECTED by server");
@@ -67,8 +63,6 @@ int UDPR_client_init_connection(int socket_fd,
         make_error_msg(__FUNCTION__, " - got sth what is not CONACC");
         return ERROR;
     }
-
-    printf("UDPR client success in connecting to server\n");
 
     return SUCCESS;
 }
@@ -386,7 +380,6 @@ void UDPR_client_handler(int socket_fd,
 
     // Connection with server was established succesfully, now we will be
     // sending our data
-    printf("Sending data\n");
     if (UDPR_client_send_DATA(socket_fd, server_address, server_address_len, vec, session_id, &nbr_of_retransmits, &real_server_s_addr) != SUCCESS)
     {
         return;
