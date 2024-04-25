@@ -25,9 +25,6 @@ void realocate_my_vec(my_vec_t *my_vec)
     if (my_vec->buff == NULL)
         fatal("my_vec_push_back - calloc didnt allocate\n");
 
-    // printf("-----MAKING REALLOCATION-----\n");
-    // printf("Old buffsize -> %lu, New buffsize -> %lu\n", my_vec->buff_size, new_size);
-
     my_vec->buff_size = new_size;
 
     strncpy(my_vec->buff, temp, my_vec->occupied_size);
@@ -126,14 +123,7 @@ void my_vec_read_stdin(my_vec_t *my_vec)
         }
         
         push_back_str_to_vec(my_vec, read_buff, nbr_of_bytes_read);
-        // printf("%zu characters were read.\n",nbr_of_bytes_read);
-        // my_vec_print(my_vec);
         memset(read_buff, 0, sizeof(read_buff));
 
     } while(nbr_of_bytes_read != 0);
-
-    printf("\n");
-    // my_vec_push_back(my_vec, '\0');
-    // printf("my_vec:\n%s\n", my_vec->buff);
-    // printf("nbr of bytes in vec: %" PRIu64 "\n", my_vec->occupied_size);
 }

@@ -99,7 +99,7 @@ void make_error_msg(const char *func_name, const char *msg)
 // to make sure printf() prints wanted bytes
 void print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len)
 {
-    printf("[packet: %" PRIu64 "]:\n%.*s\n", package_id, (int)buff_len, buff);
+    printf("%.*s", (int)buff_len, buff);
     fflush(stdout);
 }
 

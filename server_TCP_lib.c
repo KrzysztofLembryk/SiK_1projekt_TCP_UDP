@@ -47,11 +47,7 @@ int TCP_wait_for_client(int socket_fd, int *c_fd,
         make_error_msg(__FUNCTION__, " - client_fd < 0");
         return ERROR;
     }
-    
-    // char const *client_ip = inet_ntoa(client_address->sin_addr);
-    // uint16_t client_port = ntohs(client_address->sin_port);
 
-    // printf("\n####\naccepted connection from %s:%" PRIu16 "\n", client_ip, client_port);
     *c_fd = client_fd;
     return SUCCESS;
 }
@@ -194,12 +190,6 @@ int TCP_read_data_to_buf(int client_fd, char *buf,
     return SUCCESS;
 }
 
-void TCP_print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len)
-{
-    printf("[packet: %" PRIu64 "]:\n%.*s\n", package_id, (int)buff_len, buff);
-    // printf("[packet: %" PRIu64 "]:\n", package_id);
-}
-
 // - Function handles TCP communication with clients
 // - If client connects to our server and makes server wait for packet more
 // than MAX_WAIT seconds, server ends connection with client
@@ -222,9 +212,6 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
     if (getsockname(socket_fd, (struct sockaddr *) server_address, &length) < 0)
         syserr("getsockname");
 
-    printf("TCPserver is listening on port %" PRIu16 "\n", 
-        ntohs(server_address->sin_port));
-    
     while(true)
     {
         int client_fd = -1;
@@ -321,7 +308,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
 
                 break;
             }
-            // TCP_print_data_to_stdout(buff, data_metainfo.package_id, data_metainfo.nbr_of_bytes_in_packet);
+            // print_data_to_stdout(buff, data_metainfo.nbr_of_bytes_in_packet);
         }
 
         if (wrong_packet_err)

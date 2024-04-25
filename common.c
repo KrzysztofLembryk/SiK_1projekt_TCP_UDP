@@ -103,18 +103,3 @@ void install_signal_handler(int signal, void (*handler)(int))
         syserr("sigaction");
     }
 }
-
-// void install_signal_handler(int signal, void (*handler)(int), int flags) 
-// {
-//     struct sigaction action;
-//     sigset_t block_mask;
-
-//     sigemptyset(&block_mask);
-//     action.sa_handler = handler;
-//     action.sa_mask = block_mask;
-//     action.sa_flags = flags;
-
-//     if (sigaction(signal, &action, NULL) < 0 ){
-//         syserr("sigaction");
-//     }
-// }

@@ -74,8 +74,6 @@ int main(int argc, char *argv[])
         syserr("binding socket with address unsuccesful");
     }
 
-    printf("SEND BUFF SIZE = %u\n", SEND_BUFF_SIZE);
-
     // FILE *file;
     // file = fopen("wyniki_UDPR", "a");
     // fprintf(file, "SEND BUFF SIZE %u\n", SEND_BUFF_SIZE);

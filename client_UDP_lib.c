@@ -47,7 +47,6 @@ int UDP_client_CONACC_handler(int socket_fd,
 
     CONACC conacc;
 
-    printf("sizeof conacc: %zu, received bytes: %zu\n", sizeof(conacc), (size_t)received_length);
     cast_buff_to(&conacc, sizeof(conacc), response_buffer, (size_t)received_length);
     ntoh_CONACC(&conacc);
 
