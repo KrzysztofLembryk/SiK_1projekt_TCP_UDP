@@ -27,4 +27,8 @@ int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
 
 int wait_for_server_response(int socket_fd, char *response_buffer, size_t buff_size, ssize_t *received_length, unsigned long *real_server_s_addr, unsigned short server_port);
 
+
+void save_to_file(const char *f_name, clock_t start, clock_t end, 
+    uint64_t nbr_of_bytes);
+
 #endif

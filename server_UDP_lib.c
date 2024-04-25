@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <signal.h>
+#include <time.h>
 
 #include "constants.h"
 #include "common.h"
@@ -133,9 +134,10 @@ int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 {
     cast_buff_to(conn, sizeof(*conn), buff, (size_t)read_bytes);
     ntoh_CONN(conn);
-    printf("\n####\n");
-    printf("ACCEPTING CONN\n");
-    print_CONN(conn);
+    // printf("\n####\n");
+    // printf("ACCEPTING CONN\n");
+    // print_CONN(conn);
+
 
     if (read_bytes != sizeof(*conn))
     {
@@ -159,7 +161,7 @@ int check_if_correct_CONN(char *buff, ssize_t read_bytes, CONN *conn)
 int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
                 socklen_t client_address_len, uint64_t session_id)
 {
-    printf("Sending CONRJT\n");
+    // printf("Sending CONRJT\n");
     CONRJT conrjt;
 
     init_CONRJT(&conrjt, session_id);
@@ -173,7 +175,7 @@ int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
 int send_CONACC(int socket_fd, struct sockaddr_in *client_address,
                 socklen_t client_address_len, uint64_t session_id)
 {
-    printf("Sending CONACC\n");
+    // printf("Sending CONACC\n");
     CONACC conacc;
 
     init_CONACC(&conacc, session_id);
@@ -188,7 +190,7 @@ int send_RJT(int socket_fd, struct sockaddr_in *client_address,
              socklen_t client_address_len, uint64_t session_id,
              uint64_t package_id)
 {
-    printf("Sending RJT\n");
+    // printf("Sending RJT\n");
     RJT rjt;
 
     init_RJT(&rjt, session_id, package_id);
@@ -201,7 +203,7 @@ int send_RJT(int socket_fd, struct sockaddr_in *client_address,
 int send_RCVD(int socket_fd, struct sockaddr_in *client_address,
               socklen_t client_address_len, uint64_t session_id)
 {
-    printf("Sending RCVD\n");
+    // printf("Sending RCVD\n");
     RCVD rcvd;
 
     init_RCVD(&rcvd, session_id);
@@ -215,7 +217,7 @@ int send_ACC(int socket_fd, struct sockaddr_in *client_address,
              socklen_t client_address_len, uint64_t session_id,
              uint64_t package_id)
 {
-    printf("Sending ACC\n");
+    // printf("Sending ACC\n");
     ACC acc;
 
     init_ACC(&acc, session_id, package_id);
@@ -309,10 +311,10 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
         curr_package_id++;
         bytes_recvd += data_info.nbr_of_bytes_in_packet;
 
-        print_data_to_stdout(buff + sizeof(data_info), data_info.package_id, data_info.nbr_of_bytes_in_packet);
+        // print_data_to_stdout(buff + sizeof(data_info), data_info.package_id, data_info.nbr_of_bytes_in_packet);
     }
 
-    printf("bytes_recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
+    // printf("bytes_recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
 
     // if bytes_recvd == bytes_to_receive this means that we've got all declared
     // data and thus we need to send rcvd msg
@@ -321,7 +323,7 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
     else
     {
         make_error_msg(__FUNCTION__, " - client sent too many bytes, bytes_recv != bytes_to_receive");
-        send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
+        // send_RJT(socket_fd, &client_address, client_address_len, conn->session_id, curr_package_id);
     }
 }
 
@@ -452,7 +454,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
 
     while (bytes_recvd < bytes_to_receive)
     {
-        printf("waiting for packet [%lu]\n", curr_package_id);
+        // printf("waiting for packet [%lu]\n", curr_package_id);
         ssize_t read_bytes;
 
         int read_ret_val = read_data_to_buffer(socket_fd, buff,
@@ -499,11 +501,11 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         curr_package_id++;
         bytes_recvd += data_info.nbr_of_bytes_in_packet;
 
-        print_data_to_stdout(buff + sizeof(data_info), data_info.package_id, data_info.nbr_of_bytes_in_packet);
+        // print_data_to_stdout(buff + sizeof(data_info), data_info.package_id, data_info.nbr_of_bytes_in_packet);
 
     }
 
-    printf("bytes_recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
+    // printf("bytes_recvd: %" PRIu64 ", bytes_to_receive: %" PRIu64 "\n", bytes_recvd, bytes_to_receive);
 
     if (bytes_recvd == bytes_to_receive)
         send_RCVD(socket_fd, &client_address, client_address_len, conn->session_id);
@@ -556,15 +558,16 @@ void UDP_server_handler(int socket_fd)
             continue;
         }
 
+        clock_t start = clock();
         if (send_CONACC(socket_fd, &client_address, client_address_len,
                         conn.session_id) != SUCCESS)
         {
             continue;
         }
 
-        char const *client_ip = inet_ntoa(client_address.sin_addr);
-        uint16_t client_port = ntohs(client_address.sin_port);
-        printf("|||||- accepted connection from %s:%" PRIu16 " -|||||\n", client_ip, client_port);
+        // char const *client_ip = inet_ntoa(client_address.sin_addr);
+        // uint16_t client_port = ntohs(client_address.sin_port);
+        // printf("|||||- accepted connection from %s:%" PRIu16 " -|||||\n", client_ip, client_port);
 
         // Only after establishing new connection we set timeout for our socket
         // so that we won't wait eternity for msg from client, since he may not
@@ -584,5 +587,12 @@ void UDP_server_handler(int socket_fd)
             make_error_msg(__FUNCTION__, " - unknown protocol type");
             break;
         }
+
+        clock_t end = clock();
+        if (conn.protocol_id == UDP_PROTOCOL)
+            save_to_file("wyniki_UDP", start, end, conn.nbr_of_bytes_to_be_sent);
+        else
+            save_to_file("wyniki_UDPR", start, end, conn.nbr_of_bytes_to_be_sent);
+            
     }
 }
