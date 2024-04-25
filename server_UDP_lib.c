@@ -66,15 +66,45 @@ int read_data_to_buffer(int socket_fd, char *buff, size_t buff_size,
             // We need to check session id of received packet since CONRJT needs
             // it. CONRJT has only two members: package type and session id thus
             // we cast received msg to CONRJT
-            CONRJT conrjt;
+            CONN conn;
 
-            cast_buff_to(&conrjt, sizeof(conrjt), buff, *read_bytes);
-            ntoh_CONRJT(&conrjt);
-            make_error_msg(__FUNCTION__, " - got packet not from our client, sending CONRJT");
-            send_CONRJT(socket_fd, client_address, *client_address_len,
-                        conrjt.session_id);
+            cast_buff_to(&conn, sizeof(conn), buff, *read_bytes);
+            ntoh_CONN(&conn);
 
-            continue;
+            if (conn.package_type_id == CONN_ID)
+            {
+                if (sizeof(CONN) != *read_bytes)
+                {
+                    make_error_msg(__FUNCTION__, " - got packet with CONN id from different client but size of this packet is not equal to sizeof(CONN) -- ignoring");
+                    continue;
+                }
+                else
+                {
+                    make_error_msg(__FUNCTION__, " - got CONN packet not from our client, sending CONRJT");
+                    send_CONRJT(socket_fd, client_address, *client_address_len,
+                            conn.session_id);
+                    
+                    continue;
+                }
+            }
+            else if (conn.package_type_id == DATA_ID)
+            {
+                DATA_INFO_t d_info;
+
+                cast_buff_to(&d_info, sizeof(d_info), buff, *read_bytes);
+                ntoh_DATA_INFO(&d_info);
+                send_RJT(socket_fd, client_address, *client_address_len, 
+                d_info.session_id, d_info.package_id);
+
+                make_error_msg(__FUNCTION__, " - got DATA packet from other client, sending RJT");
+
+                continue;
+            }
+            else 
+            {
+                make_error_msg(__FUNCTION__, " - got msg that is not CONN nor DATA from other client -- ignoring");
+                continue;
+            }
         }
 
         if (*read_bytes == 0)
