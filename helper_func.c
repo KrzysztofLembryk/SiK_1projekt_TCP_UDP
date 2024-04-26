@@ -97,7 +97,7 @@ void make_error_msg(const char *func_name, const char *msg)
 
 // - Function prints buff_len bytes from buff to stdout, function flushes stdout
 // to make sure printf() prints wanted bytes
-void print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len)
+void print_data_to_stdout(char *buff, uint32_t buff_len)
 {
     printf("%.*s", (int)buff_len, buff);
     fflush(stdout);

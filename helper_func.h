@@ -19,7 +19,7 @@ int readn_error_handler(ssize_t read_length, size_t data_size);
 
 void make_error_msg(const char *func_name, const char *msg);
 
-void print_data_to_stdout(char *buff, uint64_t package_id, uint32_t buff_len);
+void print_data_to_stdout(char *buff, uint32_t buff_len);
 
 int sendto_wrapper(int socket_fd, struct sockaddr_in *server_address,
                    socklen_t server_address_len,

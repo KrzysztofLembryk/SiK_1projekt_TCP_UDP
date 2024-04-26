@@ -1,13 +1,13 @@
 CC     = gcc
 CFLAGS = -Wall -Wextra -O2 -std=gnu17
-TARGETS = ppcb_client server 
+TARGETS = ppcbc ppcbs 
 
 all: $(TARGETS)
 
-server: server.o err.o common.o helper_func.o server_TCP_lib.o \
+ppcbs: server.o err.o common.o helper_func.o server_TCP_lib.o \
 packet_structures.o server_UDP_lib.o
 
-ppcb_client: ppcb_client.o err.o common.o helper_func.o client_TCP_lib.o \
+ppcbc: ppcb_client.o err.o common.o helper_func.o client_TCP_lib.o \
 packet_structures.o my_vec.o client_UDP_lib.o client_UDPR_lib.o \
 client_tests_lib.o 
 
