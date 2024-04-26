@@ -4,6 +4,7 @@
 #include <netinet/in.h>
 #include <time.h>
 #include <stdlib.h>
+#include <signal.h>
 
 #include "err.h"
 #include "common.h"
@@ -64,7 +65,7 @@ int main(int argc, char *argv[])
     struct timeval time_o = {.tv_sec = MAX_WAIT, .tv_usec = 0};
     setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, &time_o, sizeof time_o);
 
-
+    signal(SIGPIPE, SIG_IGN);
     // We read stdin so late since before reading it errors might occur 
     // regarding creating socket/checking comm type etc. So we would need to 
     // deallocate our vector after each error, but now since we read input at
