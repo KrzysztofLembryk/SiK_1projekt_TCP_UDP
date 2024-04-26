@@ -443,6 +443,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
     bool is_first_DATA_packet = true;
     static struct sockaddr_in client_address;
     static socklen_t client_address_len = (socklen_t)sizeof(client_address);
+    
 
     while (bytes_recvd < bytes_to_receive)
     {
@@ -491,7 +492,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         is_first_DATA_packet = false;
         curr_package_id++;
         bytes_recvd += data_info.nbr_of_bytes_in_packet;
-
+        
         // print_data_to_stdout(buff + sizeof(data_info), data_info.nbr_of_bytes_in_packet);
 
     }
