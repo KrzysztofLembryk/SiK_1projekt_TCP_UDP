@@ -304,7 +304,7 @@ void UDP_data_receive(int socket_fd, char *buff, CONN *conn,
         curr_package_id++;
         bytes_recvd += data_info.nbr_of_bytes_in_packet;
 
-        // print_data_to_stdout(buff + sizeof(data_info), data_info.nbr_of_bytes_in_packet);
+        print_data_to_stdout(buff + sizeof(data_info), data_info.nbr_of_bytes_in_packet);
     }
 
 
@@ -493,7 +493,7 @@ void UDPR_data_receive(int socket_fd, char *buff, CONN *conn, struct sockaddr_in
         curr_package_id++;
         bytes_recvd += data_info.nbr_of_bytes_in_packet;
         
-        // print_data_to_stdout(buff + sizeof(data_info), data_info.nbr_of_bytes_in_packet);
+        print_data_to_stdout(buff + sizeof(data_info), data_info.nbr_of_bytes_in_packet);
 
     }
 

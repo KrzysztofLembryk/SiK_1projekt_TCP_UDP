@@ -308,7 +308,7 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
                 break;
             }
             
-            // print_data_to_stdout(buff, data_metainfo.nbr_of_bytes_in_packet);
+            print_data_to_stdout(buff, data_metainfo.nbr_of_bytes_in_packet);
         }
 
         if (wrong_packet_err)
