@@ -193,7 +193,7 @@ void save_to_file(const char *f_name, clock_t start, clock_t end,
     {
         fprintf(file, "%" PRIu64 "KB,", nbr_of_bytes / 1000);
     }
-    fprintf(file, "%fs,%u\n", seconds, SEND_BUFF_SIZE);
+    fprintf(file, "%f,%u\n", seconds, SEND_BUFF_SIZE);
     fflush(file);
     fclose(file);
 }

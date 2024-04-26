@@ -48,15 +48,15 @@ int UDPR_client_init_connection(int socket_fd,
                  (size_t)received_length);
     ntoh_CONACC(&conacc);
     
-    if (received_length != sizeof(conacc))
-    {
-        make_error_msg(__FUNCTION__, " - got packet with sizeof not equal to CONACC");
-        return ERROR;
-    }
     if (conacc.package_type_id == CONRJT_ID && conacc.session_id == session_id)
     {
         make_error_msg(__FUNCTION__, " - got CONRJT --> connection was REJECTED by server");
         return CONRJT_ERROR;
+    }
+    if (received_length != sizeof(conacc))
+    {
+        make_error_msg(__FUNCTION__, " - got packet with sizeof not equal to CONACC");
+        return ERROR;
     }
     if (conacc.package_type_id != CONACC_ID || conacc.session_id != session_id)
     {
@@ -111,6 +111,11 @@ int UDPR_client_handle_RCVD(int socket_fd,
                 cast_buff_to(&acc, sizeof(acc), response_buff, *received_length);
                 ntoh_ACC(&acc);
 
+                if (*received_length != sizeof(acc))
+                {
+                    make_error_msg(__FUNCTION__, " - got ACC package but nbr of received bytes is not equal to sizeof(ACC)");
+                    return ERROR;
+                }
                 if (acc.package_id > curr_package_id)
                 {
                     make_error_msg(__FUNCTION__, " - received ACC packet but with package_id greater than curr_package_id");
@@ -295,8 +300,6 @@ int UDPR_client_send_DATA(int socket_fd,
                 return ERROR;
             }
 
-            // bytes_sent += bytes_left;
-            // bytes_left -= bytes_left;
             shift = bytes_left;
         }
         else
@@ -308,8 +311,6 @@ int UDPR_client_send_DATA(int socket_fd,
                 return ERROR;
             }
 
-            // bytes_sent += SEND_BUFF_SIZE;
-            // bytes_left -= SEND_BUFF_SIZE;
             shift = SEND_BUFF_SIZE;
         }
 
@@ -333,7 +334,7 @@ int UDPR_client_send_DATA(int socket_fd,
 
         is_before_first_acc = false;
         // Otherwise we got correct ACC thus we can increase curr_package_id
-        // and start_cpt_pos to be able to send next data package
+        // and start_cpy_pos to be able to send next data package
         curr_package_id++;
         bytes_sent += shift;
         bytes_left -= shift;

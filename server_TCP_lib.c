@@ -163,7 +163,6 @@ void handle_RJT_sending(int client_fd, CONN *conn, uint64_t curr_packet_id)
     static RJT rjt;
 
     init_RJT(&rjt, conn->session_id, curr_packet_id);
-
     TCP_send_packet(&rjt, sizeof(rjt), client_fd);
 
     close(client_fd);
@@ -312,7 +311,9 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         }
 
         if (wrong_packet_err)
+        {
             continue;
+        }
 
         // HERE WE SHOULD CHECK WHETHER CLIENT SENT sth more
         // Communication was succesful thus we send RCVD to client

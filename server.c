@@ -14,9 +14,6 @@
 #include "server_TCP_lib.h"
 #include "server_UDP_lib.h"
 
-
-
-
 int main(int argc, char *argv[])
 {
     // Server takes two parameters: 
@@ -74,26 +71,18 @@ int main(int argc, char *argv[])
         syserr("binding socket with address unsuccesful");
     }
 
-    // FILE *file;
-    // file = fopen("wyniki_UDPR", "a");
-    // fprintf(file, "SEND BUFF SIZE %u\n", SEND_BUFF_SIZE);
-    // fflush(file);
-    // fclose(file);
     // Depending on type of server we need to change how our server behaves.
     // For instance TCP server opens socket in listening mode, whereas UDP 
     // server does not
     switch (type_of_server)
     {
     case TCP:
-        // printf("running TCP SERVER\n");
         TCP_server_handler(socket_fd, &server_address, QUEUE_LEN);
         break; 
     case UDP:
-        // printf("running UDP SERVER\n");
         UDP_server_handler(socket_fd);
         break;
     case UDPR:
-        // printf("running UDPR SERVER\n");
         UDP_server_handler(socket_fd);
         break;
     default:

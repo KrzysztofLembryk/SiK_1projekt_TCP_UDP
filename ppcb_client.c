@@ -56,7 +56,6 @@ int main(int argc, char *argv[])
     uint32_t session_id_less_significant = rand();      
     uint64_t session_id = (uint64_t) session_id_significant << 32 | session_id_less_significant;
 
-
     int socket_fd;
     init_socket_fd(&socket_fd, type_of_comm);
 
