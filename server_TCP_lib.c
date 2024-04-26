@@ -323,6 +323,6 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         close(client_fd);
 
         clock_t end = clock();
-        save_to_file("wyniki_TCP", start, end, nbr_of_bytes_received);
+        save_to_file("wyniki_TCP.csv", start, end, nbr_of_bytes_received);
     }
 }

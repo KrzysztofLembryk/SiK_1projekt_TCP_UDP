@@ -25,6 +25,7 @@ static void catch_int()
 {
     finish = true;
 }
+
 // forward declaration of send_CONRJT, since it's used in read_data_to_buffer
 int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
                 socklen_t client_address_len, uint64_t session_id);
@@ -32,6 +33,7 @@ int send_CONRJT(int socket_fd, struct sockaddr_in *client_address,
 int send_RJT(int socket_fd, struct sockaddr_in *client_address,
              socklen_t client_address_len, uint64_t session_id,
              uint64_t package_id);
+
 // - Function reads maximally RECEIVE_BUFFOR_SIZE bytes to buff
 // - Before reading function zeros buffer
 // - If recvfrom read <= 0 bytes func returns ERROR, function checks if timeout
@@ -574,9 +576,9 @@ void UDP_server_handler(int socket_fd)
 
         clock_t end = clock();
         if (conn.protocol_id == UDP_PROTOCOL)
-            save_to_file("wyniki_UDP", start, end, conn.nbr_of_bytes_to_be_sent);
+            save_to_file("wyniki_UDP.csv", start, end, conn.nbr_of_bytes_to_be_sent);
         else
-            save_to_file("wyniki_UDPR", start, end, conn.nbr_of_bytes_to_be_sent);
+            save_to_file("wyniki_UDPR.csv", start, end, conn.nbr_of_bytes_to_be_sent);
             
     }
 }
