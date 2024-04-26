@@ -226,7 +226,9 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
             }
             continue;
         }
-        clock_t start = clock();
+
+        // clock_t start = clock();
+
         // We need to set time for our client in order to prevent client from 
         // connecting and not sending anything thus blocking our server
         set_timeout_for_client_socket(client_fd, MAX_WAIT);
@@ -323,7 +325,8 @@ void TCP_server_handler(int socket_fd, struct sockaddr_in *server_address, int q
         TCP_send_packet(&rcvd, sizeof(rcvd), client_fd);
         close(client_fd);
 
-        clock_t end = clock();
-        save_to_file("wyniki_TCP.csv", start, end, nbr_of_bytes_received);
+        // Functions for measuring protocols efficiency:
+        // clock_t end = clock();
+        // save_to_file("wyniki_TCP.csv", start, end, nbr_of_bytes_received);
     }
 }

@@ -549,7 +549,7 @@ void UDP_server_handler(int socket_fd)
             continue;
         }
 
-        clock_t start = clock();
+        // clock_t start = clock();
         if (send_CONACC(socket_fd, &client_address, client_address_len,
                         conn.session_id) != SUCCESS)
         {
@@ -575,11 +575,12 @@ void UDP_server_handler(int socket_fd)
             break;
         }
 
-        clock_t end = clock();
-        if (conn.protocol_id == UDP_PROTOCOL)
-            save_to_file("wyniki_UDP.csv", start, end, conn.nbr_of_bytes_to_be_sent);
-        else
-            save_to_file("wyniki_UDPR.csv", start, end, conn.nbr_of_bytes_to_be_sent);
+        // Functions for measuring protocols efficiency for report:
+        // clock_t end = clock();
+        // if (conn.protocol_id == UDP_PROTOCOL)
+        //     save_to_file("wyniki_UDP.csv", start, end, conn.nbr_of_bytes_to_be_sent);
+        // else
+        //     save_to_file("wyniki_UDPR.csv", start, end, conn.nbr_of_bytes_to_be_sent);
             
     }
 }

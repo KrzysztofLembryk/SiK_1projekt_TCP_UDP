@@ -10,6 +10,9 @@
 #define WRONG_CONN 0
 #define WRONG_DATA 1
 
+// EDGE CASES FOR SERVER TESTING FILE - meaning what happens when incorrect 
+//                                      client connects to server
+
 int TCP_send_package(int socket_fd, void *package, size_t pacakte_size)
 {
     ssize_t written_length = writen(socket_fd, package, pacakte_size);
