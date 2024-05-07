@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <time.h>
-#include <unistd.h>
 #include "constants.h"
 #include "err.h"
 
@@ -97,10 +96,11 @@ void make_error_msg(const char *func_name, const char *msg)
 }
 
 // - Function prints buff_len bytes from buff to stdout, function flushes stdout
-// to make sure write() prints wanted bytes
+// to make sure printf() prints wanted bytes
 void print_data_to_stdout(char *buff, uint32_t buff_len)
 {
-    write(STDOUT_FILENO, buff, buff_len);
+    printf("%.*s", (int)buff_len, buff);
+    fflush(stdout);
 }
 
 // - Function sends data using sendto() and handles errors returned by it
