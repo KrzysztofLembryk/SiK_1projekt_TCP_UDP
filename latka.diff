@@ -1,5 +1,5 @@
---- helper_func_with_printf.c	2024-05-07 20:39:03.093301008 +0200
-+++ helper_func.c	2024-05-07 20:35:57.951426335 +0200
+--- old_print/helper_func.c	2024-05-07 20:39:03.093301008 +0200
++++ new_print/helper_func.c	2024-05-10 21:53:28.988101803 +0200
 @@ -5,6 +5,7 @@
  #include <stdio.h>
  #include <stdbool.h>
@@ -8,12 +8,13 @@
  #include "constants.h"
  #include "err.h"
  
-@@ -96,11 +97,10 @@
+@@ -95,12 +96,10 @@
+     error(text);
  }
  
- // - Function prints buff_len bytes from buff to stdout, function flushes stdout
+-// - Function prints buff_len bytes from buff to stdout, function flushes stdout
 -// to make sure printf() prints wanted bytes
-+// to make sure write() prints wanted bytes
++// - Function prints buff_len bytes from buff to stdout using write()
  void print_data_to_stdout(char *buff, uint32_t buff_len)
  {
 -    printf("%.*s", (int)buff_len, buff);
