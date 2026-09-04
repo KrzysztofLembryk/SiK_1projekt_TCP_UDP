@@ -109,5 +109,3 @@ Protokół będzie testowany rygorystycznie, również z programami wzorcowymi. 
 Testy i raport z testów jest ważną częścią rozwiązania.
 
 Stałe MAX_WAIT oraz MAX_RETRANSMITS należy zadeklarować w pliku protconst.h, w którym nie powinno być innych definicji ani deklaracji.
-
-Pytania do zadania należy kierować na adres P.Parys@mimuw.edu.pl. Odpowiedzi do najczęściej zadawanych pytań będą pojawiać się na forum.
